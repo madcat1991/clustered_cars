@@ -11,6 +11,8 @@ import sys
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
+from sklearn.preprocessing import binarize
+from sklearn.preprocessing import normalize
 
 from ibcf.matrix_functions import get_sparse_matrix_info
 from ibcf.recs import get_topk_recs
@@ -66,7 +68,12 @@ def main():
     logging.info(u"Testing matrix: %s", get_sparse_matrix_info(ts_m))
 
     sim_m = get_similarity_matrix(tr_m)
-    recs_m = get_topk_recs(tr_m, sim_m, tr_m, 10)
+    recs_m = get_topk_recs(
+        normalize(tr_m),
+        sim_m,
+        binarize(tr_m),
+        10
+    )
     logging.info(u"Hit ratio: %.3f", hit_ratio(recs_m, ts_m))
 
 
