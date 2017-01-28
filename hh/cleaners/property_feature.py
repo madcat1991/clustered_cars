@@ -96,7 +96,6 @@ INT_COLS = [
     'travel cot',
     'tumble drier',
     'video',
-    'vineyard',
     'washer-drier',
     'washing machine',
     'zip-linkable'

@@ -167,8 +167,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-p", default=1.0, dest="data_percentage", type=float,
                         help=u"Percentage of data used for testing and training. Default: 1.0")
-    parser.add_argument("-t", default=0.3, dest="test_percentage", type=float,
-                        help=u"Percentage of data used for testing purposes. Default: 0.3")
+    parser.add_argument("-t", default=0.2, dest="test_percentage", type=float,
+                        help=u"Percentage of data used for testing purposes. Default: 0.2")
     parser.add_argument("-r", dest="random_state", type=int, required=False,
                         help=u"Random state")
     parser.add_argument("-d", required=True, dest="data_csv_path",
