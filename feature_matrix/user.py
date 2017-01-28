@@ -121,6 +121,7 @@ def main():
 
     cols_to_binarize = df.columns[df.dtypes == 'object'].drop("code")
     df = pd.get_dummies(df, columns=cols_to_binarize).fillna(0)
+    df["booking_cnt"] = 1  # for future purposes
     df = df.groupby("code").sum().reset_index()
 
     # dropping columns that can't change anything
@@ -155,7 +156,7 @@ if __name__ == '__main__':
     args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Contact.csv'
     args.property_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Property.csv'
     args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Features.csv'
-    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/booking_features.csv'
+    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/user_features.csv'
     args.log_level = 'INFO'
 
     logging.basicConfig(

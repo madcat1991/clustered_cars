@@ -115,6 +115,7 @@ def main():
 
     cols_to_binarize = df.columns[df.dtypes == 'object'].drop("propcode")
     df = pd.get_dummies(df, columns=cols_to_binarize).fillna(0)
+    df["booking_cnt"] = 1  # for future purposes
     df = df.groupby("propcode").sum().reset_index()
 
     # dropping columns that can't change anything
