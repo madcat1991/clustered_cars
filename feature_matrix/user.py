@@ -37,7 +37,11 @@ def get_idf(bdf):
 
 def get_udf(bdf):
     udf = pd.read_csv(args.contact_csv)
-    user_cols = ["code", "oac_groupdesc", "avg_spend_per_head"]
+    user_cols = [
+        "code",
+        "oac_groupdesc",
+        "avg_spend_per_head"
+    ]
     udf = udf[udf.code.isin(bdf.code)][user_cols]
     # prepare avg_spend_per_head
     udf.avg_spend_per_head = prepare_num_column(udf.avg_spend_per_head)
@@ -55,7 +59,6 @@ def get_fdf(bdf):
         'barbecue',
         'big gardens or farm to wander',
         'boats or mooring available',
-        'broadband',
         'coast 5 miles',
         'complex',
         'countryside views',
@@ -66,7 +69,6 @@ def get_fdf(bdf):
         'fishing - private',
         'games room',
         'golf course nearby - good',
-        'good for honeymooners',
         'hot tub',
         'indoor pool',
         'on a farm',
@@ -85,10 +87,7 @@ def get_fdf(bdf):
         'snooker table',
         'stairgate',
         'tennis court',
-        'tumble drier',
         'vineyard',
-        'washer-drier',
-        'washing machine',
         'wheel chair facilities'
     ]
     fdf = fdf[["propcode", "year"] + feature_cols]
@@ -153,10 +152,10 @@ if __name__ == '__main__':
     )
 
     args.booking_csv = '/Users/user/PyProjects/clustered_cars/data/training.csv'
-    args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Contact.csv'
-    args.property_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Property.csv'
-    args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Features.csv'
-    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/user_features.csv'
+    args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Contact.csv'
+    args.property_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Property.csv'
+    args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Features.csv'
+    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/featured/user.csv'
     args.log_level = 'INFO'
 
     logging.basicConfig(
