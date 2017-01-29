@@ -55,14 +55,10 @@ def get_fdf(bdf):
         'enhanced',
         'farm help',
         'fishing - private',
-        'freezer',
-        'fridge',
-        'fridge-freezer',
         'games room',
         'golf course nearby - good',
         'good for honeymooners',
         'hot tub',
-        'indoor pool',
         'on a farm',
         'open fire or woodburner',
         'outdoor heated pool',
@@ -80,11 +76,8 @@ def get_fdf(bdf):
         'stairgate',
         'tennis court',
         'travel cot',
-        'tumble drier',
         'video',
         'vineyard',
-        'washer-drier',
-        'washing machine',
         'wheel chair facilities'
     ]
     fdf = fdf[["propcode", "year"] + feature_cols]
@@ -143,10 +136,10 @@ if __name__ == '__main__':
     )
 
     args.booking_csv = '/Users/user/PyProjects/clustered_cars/data/training.csv'
-    args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Contact.csv'
-    args.property_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Property.csv'
-    args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Features.csv'
-    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/booking_features.csv'
+    args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Contact.csv'
+    args.property_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Property.csv'
+    args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Features.csv'
+    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/featured/booking.csv'
     args.log_level = 'INFO'
 
     logging.basicConfig(

@@ -1,17 +1,15 @@
 # coding: utf-8
 
 u"""
-The script prepares user-feature vectors
+The script clusters users
 """
 import argparse
 import logging
 import sys
 
-import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
 from sklearn.feature_extraction.text import TfidfTransformer
-from sklearn.preprocessing import binarize
 
 
 RESERVED_COLS = ["code", "booking_cnt"]
@@ -62,10 +60,10 @@ if __name__ == '__main__':
     # parser.add_argument("-u", required=True, dest="uf_csv", help=u"Path to a user-feature csv file")
     # parser.add_argument("-n", default=500, dest="n_cluster",
     #                     help=u"Number of clusters to produce. Default: 500")
-    # parser.add_argument("-e", default=6, dest="n_explainer",
-    #                     help=u"Number of explanatory features per cluster. Default: 6")
+    # parser.add_argument("-e", default=10, dest="n_explainer",
+    #                     help=u"Number of explanatory features per cluster. Default: 10")
     # parser.add_argument('-o', default="user.txt", dest="output_path",
-    #                     help=u'Path to an output file. Default: user_clusters.txt')
+    #                     help=u'Path to an output file. Default: user.txt')
     # parser.add_argument("--log-level", default='INFO', dest="log_level",
     #                     choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
     #
@@ -75,7 +73,7 @@ if __name__ == '__main__':
 
     args = namedtuple(
         "args",
-        ["uf_csv", "n_clusters", "n_explainer", "output_path"]
+        ["uf_csv", "n_clusters", "n_explainer", "output_path", "log_level"]
     )
 
     args.uf_csv = '/Users/user/PyProjects/clustered_cars/data/featured/user.csv'
