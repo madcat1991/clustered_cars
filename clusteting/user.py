@@ -8,6 +8,7 @@ import logging
 import sys
 
 import pandas as pd
+from sklearn.cluster import Birch
 from sklearn.cluster import KMeans
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfTransformer
@@ -26,8 +27,10 @@ def main():
     logging.info(u"Running PCA")
     feature_part = PCA(n_components=args.n_components).fit_transform(tfidf.todense())
 
-    logging.info(u"Clustering via K-Means. Number of clusters: %s", args.n_clusters)
-    km = KMeans(n_clusters=args.n_clusters, tol=1e-5).fit(feature_part)
+    # logging.info(u"Clustering via K-Means. Number of clusters: %s", args.n_clusters)
+    # km = KMeans(n_clusters=args.n_clusters, tol=1e-5).fit(feature_part)
+    logging.info(u"Clustering via Birch. Number of clusters: %s", args.n_clusters)
+    km = Birch(n_clusters=args.n_clusters, threshold=0.1, branching_factor=100).fit(feature_part)
 
     logging.info(u"Dumping data to: %s", args.output_path)
     with open(args.output_path, "w") as f:
@@ -75,7 +78,7 @@ if __name__ == '__main__':
     )
 
     args.uf_csv = '/Users/user/PyProjects/clustered_cars/data/featured/user.csv'
-    args.n_clusters = 900
+    args.n_clusters = 850
     args.n_components = 50
     args.output_path = '/Users/user/PyProjects/clustered_cars/data/clustered/user.txt'
     args.log_level = 'INFO'

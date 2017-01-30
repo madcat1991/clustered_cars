@@ -22,7 +22,7 @@ def main():
     feature_part = PCA(n_components=args.n_components).fit_transform(df[feature_cols])
 
     logging.info(u"Clustering via K-Means. Number of clusters: %s", args.n_clusters)
-    km = KMeans(n_clusters=args.n_clusters, tol=1e-5).fit(feature_part)
+    km = KMeans(n_clusters=args.n_clusters).fit(feature_part)
 
     logging.info(u"Dumping data to: %s", args.output_path)
     with open(args.output_path, "w") as f:
@@ -53,7 +53,7 @@ def main():
             )
             f.write("Explanation:\n")
 
-            for k, v in explanation[explanation > 0.8].iteritems():
+            for k, v in explanation[explanation > 0.6].iteritems():
                 f.write("-> %s: %.3f\n" % (k, v))
 
             f.write("Bookings: %s\n" % ", ".join(cluster.bookcode.tolist()))
