@@ -29,7 +29,7 @@ def get_idf(bdf):
         bdf[["propcode", "year"]].drop_duplicates(),
         on=["propcode", "year"]
     )
-    item_cols = ["propcode", "year", "region", "stars"]
+    item_cols = ["propcode", "year", "stars"]
     idf = idf[item_cols]
     idf.stars = prepare_num_column(idf.stars)
     return idf
@@ -70,7 +70,6 @@ def get_fdf(bdf):
         'games room',
         'golf course nearby - good',
         'hot tub',
-        'indoor pool',
         'on a farm',
         'open fire or woodburner',
         'outdoor heated pool',
