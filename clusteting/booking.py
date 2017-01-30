@@ -56,10 +56,8 @@ def main():
             for k, v in explanation[explanation > 0.8].iteritems():
                 f.write("-> %s: %.3f\n" % (k, v))
 
-            f.write("Bookings:\n")
-            f.write("%s\n" % ", ".join(cluster.bookcode.tolist()))
-            f.write("Items:\n")
-            f.write("%s\n" % ", ".join(cluster.propcode.unique().tolist()))
+            f.write("Bookings: %s\n" % ", ".join(cluster.bookcode.tolist()))
+            f.write("Items: %s\n" % ", ".join(cluster.propcode.unique().tolist()))
             f.write("---\n")
     logging.info(u"Finish")
 
@@ -86,8 +84,8 @@ if __name__ == '__main__':
     )
 
     args.bf_csv = '/Users/user/PyProjects/clustered_cars/data/featured/booking.csv'
-    args.n_clusters = 450
-    args.n_components = 20
+    args.n_clusters = 400
+    args.n_components = 15
     args.output_path = '/Users/user/PyProjects/clustered_cars/data/clustered/booking.txt'
     args.log_level = 'INFO'
 
