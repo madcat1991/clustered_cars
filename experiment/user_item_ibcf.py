@@ -54,9 +54,25 @@ def get_testing_matrix(df, uid_to_row, iid_to_col):
     return m
 
 
-def hit_ratio(recs_m, ts_m):
-    res = recs_m.multiply(ts_m)
-    return res.nnz / float(ts_m.nnz)
+def hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col):
+    hit = 0
+
+    import pickle
+    with open("hits.pkl") as f:
+        counter = pickle.load(f)
+
+    for t in testing_df.itertuples():
+        row_id = uid_to_row[t.code]
+        col_id = iid_to_col[t.propcode]
+        top = counter.get((t.code, t.propcode), 40)
+
+        if row_id is not None:
+            rec_row = recs_m[row_id]
+            rec_cols = {rec_row.indices[arg_id] for arg_id in np.argsort(rec_row.data)[-top:]}
+
+            if col_id in rec_cols:
+                hit += 1
+    return float(hit) / testing_df.shape[0]
 
 
 def main():
@@ -64,18 +80,15 @@ def main():
     tr_m, uid_to_row, iid_to_col = get_training_matrix_and_indices(training_df)
     logging.info(u"Training matrix: %s", get_sparse_matrix_info(tr_m))
 
-    testing_df = pd.read_csv(args.testing_csv)
-    ts_m = get_testing_matrix(testing_df, uid_to_row, iid_to_col)
-    logging.info(u"Testing matrix: %s", get_sparse_matrix_info(ts_m))
+    testing_df = pd.read_csv(args.testing_csv)[["code", "propcode"]].drop_duplicates()
 
     sim_m = get_similarity_matrix(tr_m)
     recs_m = get_topk_recs(
         normalize(tr_m),
         sim_m,
         binarize(tr_m),
-        10
     )
-    logging.info(u"Hit ratio: %.3f", hit_ratio(recs_m, ts_m))
+    logging.info(u"Hit ratio: %.3f", hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col))
 
 
 if __name__ == '__main__':
