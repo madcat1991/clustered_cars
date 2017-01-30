@@ -50,6 +50,7 @@ def get_testing_matrix(df, uid_to_row, iid_to_col):
             cols.append(col_id)
 
     m = csr_matrix((np.ones(len(rows)), (rows, cols)), shape=(len(uid_to_row), len(iid_to_col)))
+    m = binarize(m)  # we don't care about repetitive actions in the testing
     return m
 
 
