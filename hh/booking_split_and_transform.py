@@ -66,6 +66,8 @@ def _simple_cleaning(df):
         (pd.to_datetime(df.fdate, dayfirst=True) - pd.to_datetime(df.sdate, dayfirst=True)).apply(lambda x: x.days)
     df = df.drop([u'sdate', u'fdate'], axis=1)
     df.drivetime /= 3600  # to hours
+    df.booking_days = df.booking_days.apply(lambda x: 1 if pd.isnull(x) or x < 1 else x)
+    df.avg_spend_per_head /= df.booking_days.astype(float)
     return df
 
 
