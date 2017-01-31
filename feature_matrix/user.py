@@ -18,7 +18,8 @@ def get_bdf():
     bdf = pd.read_csv(args.booking_csv)
     booking_cols = [
         "code", "year", "breakpoint", "propcode",
-        "pets", "category", "drivetime", "booking_days"
+        "pets", "category", "drivetime", "booking_days",
+        "avg_spend_per_head"
     ]
     return bdf[booking_cols]
 
@@ -37,14 +38,8 @@ def get_idf(bdf):
 
 def get_udf(bdf):
     udf = pd.read_csv(args.contact_csv)
-    user_cols = [
-        "code",
-        "oac_groupdesc",
-        "avg_spend_per_head"
-    ]
+    user_cols = ["code", "oac_groupdesc"]
     udf = udf[udf.code.isin(bdf.code)][user_cols]
-    # prepare avg_spend_per_head
-    udf.avg_spend_per_head = prepare_num_column(udf.avg_spend_per_head)
     return udf
 
 

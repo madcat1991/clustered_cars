@@ -147,10 +147,10 @@ if __name__ == '__main__':
     )
 
     args.booking_csv = '/Users/user/PyProjects/clustered_cars/data/training.csv'
-    args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Contact.csv'
-    args.property_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Property.csv'
-    args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/HH_Cleaned_Features.csv'
-    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/item_features.csv'
+    args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Contact.csv'
+    args.property_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Property.csv'
+    args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Features.csv'
+    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/featured/item.csv'
     args.log_level = 'INFO'
 
     logging.basicConfig(
