@@ -6,6 +6,7 @@ The experiment with user-item IBCF. Only information about users and items
 
 import argparse
 import logging
+import pickle
 import sys
 
 import numpy as np
@@ -56,23 +57,45 @@ def get_testing_matrix(df, uid_to_row, iid_to_col):
 
 def hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col):
     hit = 0
-
-    import pickle
-    with open("hits.pkl") as f:
-        counter = pickle.load(f)
-
     for t in testing_df.itertuples():
         row_id = uid_to_row[t.code]
         col_id = iid_to_col[t.propcode]
-        top = counter.get((t.code, t.propcode), 40)
 
         if row_id is not None:
             rec_row = recs_m[row_id]
-            rec_cols = {rec_row.indices[arg_id] for arg_id in np.argsort(rec_row.data)[-top:]}
+            rec_cols = {rec_row.indices[arg_id] for arg_id in np.argsort(rec_row.data)[::-1]}
 
             if col_id in rec_cols:
                 hit += 1
     return float(hit) / testing_df.shape[0]
+
+
+def store_data_for_eval(recs_m, testing_df, uid_to_row, iid_to_col):
+    col_to_iid = {v: k for k, v in iid_to_col.iteritems()}
+    with open("ui_iids_cnt.pkl") as f:
+        ui_iids_cnt = pickle.load(f)
+
+    ui_iid_recs = {}
+    for t in testing_df.itertuples():
+        key = (t.code, t.propcode)
+
+        row_id = uid_to_row[t.code]
+        top = ui_iids_cnt[key]
+
+        if row_id is not None:
+            rec_row = recs_m[row_id]
+
+            iid_recs = []
+            for arg_id in np.argsort(rec_row.data)[-top:][::-1]:
+                iid = col_to_iid[rec_row.indices[arg_id]]
+                iid_recs.append(iid)
+                if t.propcode == iid:
+                    break
+
+            ui_iid_recs[key] = iid_recs
+
+    with open("ui_iid_recs.pkl", "w") as f:
+        pickle.dump(ui_iid_recs, f)
 
 
 def main():
@@ -87,8 +110,16 @@ def main():
         normalize(tr_m),
         sim_m,
         binarize(tr_m),
+        20,
     )
     logging.info(u"Hit ratio: %.3f", hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col))
+
+    recs_m = get_topk_recs(
+        tr_m,
+        sim_m,
+        binarize(tr_m)
+    )
+    store_data_for_eval(recs_m, testing_df, uid_to_row, iid_to_col)
 
 
 if __name__ == '__main__':

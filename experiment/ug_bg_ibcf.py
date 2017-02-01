@@ -6,13 +6,13 @@ The experiment with user cluster - booking cluster IBCF.
 
 import argparse
 import logging
+import pickle
 import sys
 
 import numpy as np
 import pandas as pd
 from scipy.sparse import csr_matrix
 from sklearn.preprocessing import binarize
-from sklearn.preprocessing import normalize
 
 from ibcf.matrix_functions import get_sparse_matrix_info
 from ibcf.recs import get_topk_recs
@@ -41,9 +41,6 @@ def get_training_matrix(df, uid_to_ug, bid_to_bg):
 def hit_ratio(recs_m, testing_df, uid_to_ug, bg_iids):
     hit = 0
 
-    from collections import Counter
-    counter = Counter()
-
     for t in testing_df.itertuples():
         row_id = uid_to_ug.get(t.code)
 
@@ -56,15 +53,36 @@ def hit_ratio(recs_m, testing_df, uid_to_ug, bg_iids):
                     hit += 1
                     break
 
-                counter[(t.code, t.propcode)] += len(bg_iids[bg_id])
-            else:
-                del counter[(t.code, t.propcode)]
-
-    import pickle
-    with open("hits.pkl", "w") as f:
-        pickle.dump(counter, f)
-
     return float(hit) / testing_df.shape[0]
+
+
+def store_data_for_eval(recs_m, testing_df, uid_to_ug, bg_iids):
+    ui_bg_recs = {}
+    ui_iids_cnt = Counter()
+
+    for t in testing_df.itertuples():
+        key = (t.code, t.propcode)
+        row_id = uid_to_ug.get(t.code)
+
+        if row_id is not None:
+            rec_row = recs_m[row_id]
+
+            bg_recs = []
+            for arg_id in np.argsort(rec_row.data)[::-1]:
+                bg_id = rec_row.indices[arg_id]
+                bg_recs.append(bg_id)
+                if t.propcode in bg_iids[bg_id]:
+                    break
+
+                ui_iids_cnt[key] += len(bg_iids[bg_id])
+
+            ui_bg_recs[key] = bg_recs
+
+    with open("ui_bg_recs.pkl", "w") as f:
+        pickle.dump(ui_bg_recs, f)
+
+    with open("ui_iids_cnt.pkl", "w") as f:
+        pickle.dump(ui_iids_cnt, f)
 
 
 def get_ug_data():
@@ -126,6 +144,13 @@ def main():
     )
     logging.info(u"Hit ratio: %.3f", hit_ratio(recs_m, testing_df, uid_to_ug, bg_iids))
 
+    recs_m = get_topk_recs(
+        tr_m,
+        sim_m,
+        binarize(tr_m)
+    )
+    store_data_for_eval(recs_m, testing_df, uid_to_ug, bg_iids)
+
 
 if __name__ == '__main__':
     # parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
@@ -138,7 +163,8 @@ if __name__ == '__main__':
     #
     # args = parser.parse_args()
 
-    from collections import namedtuple
+    from collections import namedtuple, Counter
+
     args = namedtuple(
         "args",
         ["training_csv", "testing_csv", "booking_cluster", "user_cluster", "log_level"]
