@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import pickle
 
-from sharedmem import sharedmem
 from sklearn.metrics import euclidean_distances
 from sklearn.preprocessing import normalize
 
@@ -39,25 +38,21 @@ def process(bdf, bgdf, bidf, ui_iid_recs):
             logging.info(u"Processed %s", i)
 
         iids_and_bgs = bdf[["propcode", "cl_id"]][bdf.propcode.isin(iid_recs)].drop_duplicates()
-        iid_bg_cnt = iids_and_bgs.groupby("propcode").count().reset_index()
+        iids_and_bgs = iids_and_bgs.groupby("propcode").apply(lambda x: x.cl_id.tolist())
 
-        touched_bg = set(
-            iids_and_bgs.cl_id[
-                iids_and_bgs.propcode.isin(iid_bg_cnt[iid_bg_cnt.cl_id == 1].propcode)
-            ]
-        )
-
-        with sharedmem.MapReduce() as ctx:
-            def _func(iid):
-                candidate_bgs = iids_and_bgs[iids_and_bgs.propcode == iid].cl_id.unique()
+        touched = []
+        for iid in iid_recs:
+            candidate_bgs = iids_and_bgs.loc[iid]
+            if len(candidate_bgs) > 1:
                 bg_m = bgdf.loc[candidate_bgs]
                 i_v = bidf.loc[iid].values.reshape(1, -1)
                 dist = euclidean_distances(normalize(i_v), normalize(bg_m))[0]
-                return candidate_bgs[np.argmin(dist)]
+                bg = candidate_bgs[np.argmin(dist)]
+            else:
+                bg = candidate_bgs[0]
 
-            touched_bg.update(ctx.map(_func, iid_bg_cnt[iid_bg_cnt.cl_id > 1].propcode.tolist()))
-
-        res[key] = touched_bg
+            touched.append(bg)
+        res[key] = touched
     return res
 
 
