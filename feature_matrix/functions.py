@@ -24,7 +24,11 @@ def _density_based_cutter(s, min_bin_size, min_value, max_value):
     return _bins_to_cuts(s, bin_edges, include_lowest=True, retbins=True)
 
 
-def prepare_num_column(s, max_value_p=99.95, min_bin_p=0.05):
+def prepare_num_column(s, max_value_p=99.95, min_bin_p=0.05, min_value=None):
     s = _fix_outliers(s, 0, np.percentile(s, max_value_p))
+
     min_bin_size = s.size * min_bin_p
-    return _density_based_cutter(s, min_bin_size, s.min(), s.max())[0]
+    if min_value is None:
+        min_value = s.min()
+
+    return _density_based_cutter(s, min_bin_size, min_value, s.max())[0]

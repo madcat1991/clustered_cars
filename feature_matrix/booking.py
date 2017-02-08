@@ -3,7 +3,7 @@
 u"""
 The script prepares item-feature vectors
 """
-
+import argparse
 import logging
 import sys
 
@@ -109,38 +109,26 @@ def main():
 
     # dropping columns that can't change anything
     feature_cols = df.columns.drop(["bookcode", "propcode"])
-    bad_col_ids = np.where(df[feature_cols].sum(axis=0) < 50)[0]
+    bad_col_ids = np.where(df[feature_cols].sum(axis=0) < args.min_values_per_column)[0]
     df = df.drop(feature_cols[bad_col_ids], axis=1)
     logging.info(u"Dumping prepared booking-feature matrix: %s", df.shape)
     df.to_csv(args.output_csv, index=False)
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    # parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with bookings")
-    # parser.add_argument("-c", required=True, dest="contact_csv", help=u"Path to a csv file with contacts")
-    # parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
-    # parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
-    # parser.add_argument('-o', default="user_features.csv", dest="output_csv",
-    #                     help=u'Path to an output file. Default: user_features.csv')
-    # parser.add_argument("--log-level", default='INFO', dest="log_level",
-    #                     choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
-    #
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with bookings")
+    parser.add_argument("-c", required=True, dest="contact_csv", help=u"Path to a csv file with contacts")
+    parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
+    parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
+    parser.add_argument('-o', default="user_features.csv", dest="output_csv",
+                        help=u'Path to an output file. Default: user_features.csv')
+    parser.add_argument('-m', default=50, type=int, dest="min_values_per_column",
+                        help=u'Min binary values per column. Default: 50')
+    parser.add_argument("--log-level", default='INFO', dest="log_level",
+                        choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
 
-    from collections import namedtuple
-
-    args = namedtuple(
-        "args",
-        ["booking_csv", "contact_csv", "property_csv", "feature_csv", "log_level", "output_csv"]
-    )
-
-    args.booking_csv = '/Users/user/PyProjects/clustered_cars/data/training.csv'
-    args.contact_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Contact.csv'
-    args.property_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Property.csv'
-    args.feature_csv = '/Users/user/PyProjects/clustered_cars/data/cleaned/HH_Cleaned_Features.csv'
-    args.output_csv = '/Users/user/PyProjects/clustered_cars/data/featured/booking.csv'
-    args.log_level = 'INFO'
+    args = parser.parse_args()
 
     logging.basicConfig(
         format='%(asctime)s %(levelname)s:%(message)s', stream=sys.stdout, level=getattr(logging, args.log_level)
