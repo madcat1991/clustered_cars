@@ -118,7 +118,6 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with bookings")
-    parser.add_argument("-c", required=True, dest="contact_csv", help=u"Path to a csv file with contacts")
     parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
     parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
     parser.add_argument('-o', default="user_features.csv", dest="output_csv",

@@ -122,10 +122,10 @@ def _clean_categorical_outliers(training_df, testing_df, min_p=0.01):
     return training_df, testing_df
 
 
-def actualize_training_data(training_df, min_bookings_per_user=3):
+def actualize_training_data(training_df, min_bookings_per_user):
     logging.info(u"Training data, before cleaning: %s", training_df.shape)
     bookings_per_user = training_df.code.value_counts()
-    good_user_ids = bookings_per_user[bookings_per_user > min_bookings_per_user].index
+    good_user_ids = bookings_per_user[bookings_per_user >= min_bookings_per_user].index
 
     training_df = training_df[training_df.code.isin(good_user_ids)]
     logging.info(u"Training data, after cleaning: %s", training_df.shape)
@@ -142,7 +142,7 @@ def main():
         pd.to_datetime(df.bookdate, dayfirst=True), args.random_state
     )
     training_df, testing_df = df.loc[training_rows], df.loc[testing_rows]
-    training_df = actualize_training_data(training_df)
+    training_df = actualize_training_data(training_df, args.min_bookings_per_user)
     testing_df = actualize_testing_data(training_df, testing_df)
 
     # drop & transform cols
@@ -175,6 +175,8 @@ if __name__ == '__main__':
                         help=u"Random state")
     parser.add_argument("-d", required=True, dest="data_csv_path",
                         help=u"Path to a booking csv dataset")
+    parser.add_argument("-m", dest="min_bookings_per_user", type=int, default=3,
+                        help=u"Min bookings per user. Default: 3")
     parser.add_argument("--trf", default='training.csv', dest="training_csv",
                         help=u"Training data file name. Default: training.csv")
     parser.add_argument("--tsf", default='testing.csv', dest="testing_csv",
