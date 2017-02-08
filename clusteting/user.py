@@ -8,8 +8,7 @@ import logging
 import sys
 
 import pandas as pd
-from sklearn.cluster import Birch
-from sklearn.cluster import KMeans
+from sklearn.cluster import MiniBatchKMeans
 from sklearn.decomposition import PCA
 from sklearn.feature_extraction.text import TfidfTransformer
 
@@ -27,10 +26,15 @@ def main():
     logging.info(u"Running PCA")
     feature_part = PCA(n_components=args.n_components).fit_transform(tfidf.todense())
 
-    # logging.info(u"Clustering via K-Means. Number of clusters: %s", args.n_clusters)
-    # km = KMeans(n_clusters=args.n_clusters, tol=1e-5).fit(feature_part)
-    logging.info(u"Clustering via Birch. Number of clusters: %s", args.n_clusters)
-    km = Birch(n_clusters=args.n_clusters, threshold=0.1, branching_factor=100).fit(feature_part)
+    logging.info(u"Clustering via K-Means. Number of clusters: %s", args.n_clusters)
+    km = MiniBatchKMeans(
+        n_init=5,
+        batch_size=int(feature_part.shape[0] * 0.4),
+        n_clusters=args.n_clusters,
+        verbose=1
+    ).fit(feature_part)
+    # logging.info(u"Clustering via Birch. Number of clusters: %s", args.n_clusters)
+    # km = Birch(n_clusters=args.n_clusters, threshold=0.1, branching_factor=100).fit(feature_part)
 
     logging.info(u"Dumping data to: %s", args.output_path)
     with open(args.output_path, "w") as f:
@@ -50,7 +54,7 @@ def main():
             f.write("Cluster #%s [%s]\n" % (cl_id, cluster.shape[0]))
             f.write("Explanation:\n")
 
-            for k, v in explanation[explanation > 0.5].iteritems():
+            for k, v in explanation[explanation > 0.7].iteritems():
                 f.write("-> %s: %.3f\n" % (k, v))
 
             f.write("Users: %s\n" % ", ".join(cluster.code.tolist()))
@@ -59,29 +63,18 @@ def main():
 
 
 if __name__ == '__main__':
-    # parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    # parser.add_argument("-u", required=True, dest="uf_csv", help=u"Path to a user-feature csv file")
-    # parser.add_argument("-n", default=500, dest="n_cluster",
-    #                     help=u"Number of clusters to produce. Default: 500")
-    # parser.add_argument('-o', default="user.txt", dest="output_path",
-    #                     help=u'Path to an output file. Default: user.txt')
-    # parser.add_argument("--log-level", default='INFO', dest="log_level",
-    #                     choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
-    #
-    # args = parser.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
+    parser.add_argument("-u", required=True, dest="uf_csv", help=u"Path to a user-feature csv file")
+    parser.add_argument("-n", default=900, dest="n_clusters", type=int,
+                        help=u"Number of clusters to produce. Default: 900")
+    parser.add_argument("-c", default=50, dest="n_components", type=int,
+                        help=u"Number of PCA components to consider. Default: 50")
+    parser.add_argument('-o', default="user.txt", dest="output_path",
+                        help=u'Path to an output file. Default: user.txt')
+    parser.add_argument("--log-level", default='INFO', dest="log_level",
+                        choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
 
-    from collections import namedtuple
-
-    args = namedtuple(
-        "args",
-        ["uf_csv", "n_clusters", "n_components", "output_path", "log_level"]
-    )
-
-    args.uf_csv = '/Users/user/PyProjects/clustered_cars/data/featured/user.csv'
-    args.n_clusters = 850
-    args.n_components = 50
-    args.output_path = '/Users/user/PyProjects/clustered_cars/data/clustered/user.txt'
-    args.log_level = 'INFO'
+    args = parser.parse_args()
 
     logging.basicConfig(
         format='%(asctime)s %(levelname)s:%(message)s', stream=sys.stdout, level=getattr(logging, args.log_level)
