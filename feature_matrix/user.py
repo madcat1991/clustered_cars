@@ -18,7 +18,7 @@ def get_bdf():
     bdf = pd.read_csv(args.booking_csv)
     booking_cols = [
         "code", "year", "breakpoint", "propcode",
-        "pets", "category", "drivetime", "booking_days",
+        "pets", "category", "drivetime", "n_booked_days",
         "avg_spend_per_head"
     ]
     return bdf[booking_cols]

@@ -13,7 +13,7 @@ import sys
 from feature_matrix.functions import prepare_num_column
 
 
-COLS_TO_BIN = ["adults", "children", "babies", "avg_spend_per_head", "booking_days", "drivetime"]
+COLS_TO_BIN = ["adults", "children", "babies", "avg_spend_per_head", "n_booked_days", "drivetime"]
 RESERVED_COLS = ["code", "year", "propcode", "bookcode"]
 COLS_TO_DROP = [
     u'bookdate',  # no need
@@ -26,12 +26,12 @@ COLS_TO_DROP = [
 
 def _simple_cleaning(df):
     df = df.drop(COLS_TO_DROP, axis=1)
-    df[u'booking_days'] = \
+    df[u'n_booked_days'] = \
         (pd.to_datetime(df.fdate, dayfirst=True) - pd.to_datetime(df.sdate, dayfirst=True)).apply(lambda x: x.days)
     df = df.drop([u'sdate', u'fdate'], axis=1)
     df.drivetime /= 3600  # to hours
-    df.booking_days = df.booking_days.apply(lambda x: 1 if pd.isnull(x) or x < 1 else x)
-    df.avg_spend_per_head /= df.booking_days.astype(float)
+    df.n_booked_days = df.n_booked_days.apply(lambda x: 1 if pd.isnull(x) or x < 1 else x)
+    df.avg_spend_per_head /= df.n_booked_days.astype(float)
     return df
 
 
@@ -66,7 +66,7 @@ def main():
     df.children = prepare_num_column(df.children, min_bin_p=0.03, min_value=1).astype('object')
     df.babies = prepare_num_column(df.babies, min_bin_p=0.001, min_value=1).astype('object')
     df.avg_spend_per_head = prepare_num_column(df.avg_spend_per_head, min_bin_p=0.06, min_value=1).astype('object')
-    df.booking_days = prepare_num_column(df.booking_days, min_bin_p=0.01, min_value=1).astype('object')
+    df.n_booked_days = prepare_num_column(df.n_booked_days, min_bin_p=0.01, min_value=1).astype('object')
     df.drivetime = prepare_num_column(df.drivetime, min_bin_p=0.05).astype('object')
 
     # clean categorical outliers
