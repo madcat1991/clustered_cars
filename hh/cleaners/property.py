@@ -1,7 +1,7 @@
 # coding: utf-8
 
 u"""
-This script cleans and prepares properties data for the future usage
+This script cleans and prepares the data set of properties for the future usage
 """
 
 import argparse
@@ -10,24 +10,14 @@ import sys
 
 import pandas as pd
 
-from hh.cleaners.common import drop_null, canonize_datetime
-
 COLS_TO_DROP = [
-    u'active', u'callflag', # no need
-    u'changeday',  # can be taken from features
+    u'active', u'callflag',  # no need
+    u'createdate', u'changeday',  # no need
     u'bandchar', u'bandno', u'sb_bandno', u'pageno',  # no need
     u'gridx', u'gridy', u'opinion', u'placeid',  # no need
     u'commission', u'latitude', u'longitude',  # no need
 ]
 
-# INTERESTING_COLS = [
-#     u'bathrooms', u'bedrooms', u'bunks', u'county', u'createdate',
-#     u'doubles', u'familyrooms', u'place', u'pname', u'postcode',
-#     u'propcode', u'propid', u'region', u'shortbreakok', u'singles',
-#     u'sleeps', u'stars', u'twin', u'year'
-# ]
-
-DATE_COLS = [u'createdate']
 INT_COLS = [
     u'bathrooms', u'bedrooms', u'bunks', u'doubles', u'familyrooms',
     u'shortbreakok', u'singles', u'sleeps', u'twin'
@@ -41,10 +31,8 @@ def main():
 
     logging.info(u"Cleaning data")
     df = df.drop(COLS_TO_DROP, axis=1)
-    df = drop_null(df, NOT_NA_COLS)
-    df = canonize_datetime(df, DATE_COLS)
-    for col in INT_COLS:
-        df[col] = pd.to_numeric(df[col])
+    df = df.dropna(subset=NOT_NA_COLS)
+    df[INT_COLS] = df[INT_COLS].apply(lambda x: pd.to_numeric(x))
     logging.info(u"Shape after cleaning: %s", df.shape)
 
     logging.info(u"Dumping data to: %s", args.output_csv)
@@ -57,7 +45,7 @@ if __name__ == '__main__':
                         help=u'Path to a csv file with properties')
     parser.add_argument('--id', default=";", dest="input_csv_delimiter",
                         help=u"The input file's delimiter. Default: ';'")
-    parser.add_argument('-o', default="HH_Cleaned_Property.csv", dest="output_csv",
+    parser.add_argument('-o', default="properties.csv", dest="output_csv",
                         help=u'Path to an output file. Default: HH_Cleaned_Property.csv')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")

@@ -4,20 +4,11 @@ import logging
 import pandas as pd
 
 
-def drop_null(df, columns):
-    """Drops null values from not null cols
-    """
-    logging.info(u"Omitting rows with NA in: %s", columns)
-    return df.dropna(subset=columns)
-
-
 def canonize_datetime(df, columns):
     """Canonizes datetime fields
     """
     logging.info(u"Converting to datetime: %s", columns)
-    for col in columns:
-        logging.debug(u"Canonizing datetime in %s", col)
-        df[col] = pd.to_datetime(df[col], dayfirst=True)
+    df[columns] = df[columns].apply(lambda x: pd.to_datetime(x, dayfirst=True, infer_datetime_format=True))
     return df
 
 

@@ -1,7 +1,7 @@
 # coding: utf-8
 
 u"""
-This script cleans and prepares bookings data for the future usage
+This script cleans and prepares the data set of bookings for the future usage
 """
 
 import argparse
@@ -10,7 +10,7 @@ import sys
 
 import pandas as pd
 
-from hh.cleaners.common import canonize_datetime, canonize_float, drop_null
+from hh.cleaners.common import canonize_datetime, canonize_float
 
 OLD_BREAKPOINT_MATCHER = {
     2001: [
@@ -113,28 +113,19 @@ OLD_BREAKPOINT_MATCHER = {
 }
 
 COLS_TO_DROP = [
-    u'proppostcode', u'region',  u'sleeps',  u'stars',  # can be taken from property
-    u'book_year',  # bookdate
-    u'pname', u'bookdate_scoreboard', u'hh_gross', u'hh_net', u'ho',  # no need
-    u'sourcecostid',  # is a pair of u'sourcedesc', u'category',
+    'pname', 'region', 'sleeps', 'stars', 'proppostcode',  # can be taken from property
+    'bookdate_scoreboard', 'book_year', 'hh_gross', 'hh_net', 'ho',  # HH specific
+    'holidayprice',  # correlates with avg_spend_per_head
+    'bighouse', 'burghisland', 'boveycastle',  # no need
+    'sourcecostid',  # is a pair of u'sourcedesc', u'category'
+    'drivedistance',  # correlates with drivetime
 ]
 
-# INTERESTING_COLS = [
-#     u'adults', u'avg_spend_per_head', u'babies', u'bighouse', u'bookcode',
-#     u'bookdate', u'boveycastle', u'breakpoint', u'burghisland', u'category',
-#     u'children', u'code', u'drivedistance'. u'drivetime', u'fdate', u'holidayprice',
-#     u'pets', u'propcode', u'sdate', u'sourcedesc', u'year', u'zone_name'
-# ]
-
-NOT_NA_COLS = [
-    u'bookcode', u'code', u'propcode', u'year', u'breakpoint', u'holidayprice'
-]
+NOT_NA_COLS = [u'bookcode', u'code', u'propcode', u'year', u'breakpoint', u'avg_spend_per_head']
 DATE_COLS = [u'bookdate', u'sdate', u"fdate"]
-FLOAT_COLS = [u'holidayprice', u'avg_spend_per_head', u'drivetime', u'drivedistance']
-INT_COLS = [
-    u'adults', u'babies', u'bighouse', u'boveycastle', u'burghisland',
-    u'children', u'pets'
-]
+FLOAT_COLS = [u'avg_spend_per_head', u'drivetime']
+INT_COLS = [u'adults', u'babies', u'children', u'pets']
+CATEGORICAL_COLS = [u'sourcedesc', u'category']
 
 
 def get_breakpoint(dt):
@@ -150,30 +141,35 @@ def get_breakpoint(dt):
 def fine_tune_df(df):
     logging.info(u"DF shape before fine tuning: %s", df.shape)
 
-    df = df.drop(u'zone_name', axis=1)
-    df = canonize_float(df, FLOAT_COLS)
-
     averages = {col: df[col].dropna().mean() for col in FLOAT_COLS}
     zeros = {col: 0 for col in INT_COLS}
-    mps = {col: df[col].value_counts().index[0] for col in [u'sourcedesc', u'category']}
+    most_popular_values = {col: df[col].value_counts().index[0] for col in CATEGORICAL_COLS}
 
     logging.info(u"Filling NA with average: %s", averages)
     df = df.fillna(averages)
     logging.info(u"Filling NA with zeros: %s", zeros)
     df = df.fillna(zeros)
-    logging.info(u"Filling NA with most populars: %s", mps)
-    df = df.fillna(mps)
+    logging.info(u"Filling NA with most populars: %s", most_popular_values)
+    df = df.fillna(most_popular_values)
 
-    for col in INT_COLS:
-        df[col] = pd.to_numeric(df[col])
+    df[INT_COLS] = df[INT_COLS].astype(int)
 
     logging.info(u"Before cleaning NA: %s", df.shape)
-    df = drop_null(df, NOT_NA_COLS)
+    df = df.dropna(subset=NOT_NA_COLS)
     logging.info(u"After cleaning NA: %s", df.shape)
 
     if pd.isnull(df.values).any():
-        logging.error(u"There are NA values in df")
+        logging.error(u"NA values left in df")
     return df
+
+
+def fill_missed_breakpoints(df):
+    df = df[pd.notnull(df.breakpoint) | pd.notnull(df.zone_name)]
+    logging.info(u"Bookings having breakpoint or zone_name: %s", df.shape[0])
+    logging.info(u"Filling missing breakpoints: %s", df[pd.isnull(df.breakpoint)].shape[0])
+    df.breakpoint[pd.isnull(df.breakpoint)] = df[pd.isnull(df.breakpoint)].sdate.apply(get_breakpoint)
+    logging.info(u"Left NA breakpoints: %s", df[pd.isnull(df.breakpoint)].shape[0])
+    return df.drop(u'zone_name', axis=1)
 
 
 def main():
@@ -181,15 +177,13 @@ def main():
     logging.info(u"DF initial shape: %s", df.shape)
 
     df = df.drop(COLS_TO_DROP, axis=1)
+
     df = canonize_datetime(df, DATE_COLS)
-    df = df[pd.notnull(df.breakpoint) | pd.notnull(df.zone_name)]
-    logging.info(u"Bookings having breakpoint or zone_name: %s", df.shape[0])
+    df = canonize_float(df, FLOAT_COLS)
 
-    logging.info(u"Fulfilling missing breakpoints: %s", df[pd.isnull(df.breakpoint)].shape[0])
-    df.breakpoint[pd.isnull(df.breakpoint)] = df[pd.isnull(df.breakpoint)].sdate.apply(get_breakpoint)
-    logging.info(u"Left NA breakpoints: %s", df[pd.isnull(df.breakpoint)].shape[0])
-
+    df = fill_missed_breakpoints(df)
     df = fine_tune_df(df)
+
     logging.info(u"Dumping data to: %s", args.output_csv)
     df.to_csv(args.output_csv, index=False)
 
@@ -200,7 +194,7 @@ if __name__ == '__main__':
                         help=u'Path to a csv file with bookings')
     parser.add_argument('--id', default=";", dest="input_csv_delimiter",
                         help=u"The input file's delimiter. Default: ';'")
-    parser.add_argument('-o', default="HH_Cleaned_Bookings.csv", dest="output_csv",
+    parser.add_argument('-o', default="bookings.csv", dest="output_csv",
                         help=u'Path to an output file. Default: HH_Cleaned_Bookings.csv')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")

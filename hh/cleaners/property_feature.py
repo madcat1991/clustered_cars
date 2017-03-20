@@ -1,7 +1,7 @@
 # coding: utf-8
 
 u"""
-This script cleans and prepares properties' features data for the future usage
+This script cleans and prepares the data set of properties' features for the future usage
 """
 
 import argparse
@@ -19,9 +19,8 @@ FEATURES_TO_DROP = [
     'county', 'place', 'region',  # can be taken from property
     'camp bed for 1', 'day bed for 1', 'day bed for 2',
     'offsite entertainment',  # is a combination of others
-    'owners website',
-    'pets - free of charge', 'pets - unlimited',
-    'phone',
+    'owners website', 'phone',  # no need
+    'pets - free of charge', 'pets - unlimited',  # too detailed
     'pvr',
     'suitability',
     'tv'  # is a combination of tele and others
@@ -121,8 +120,7 @@ def process_prop_year_entry(group):
 def process_feature_df(df):
     df = df.drop(FEATURES_TO_DROP, axis=1)
     df[YES_NO_COLS] = df[YES_NO_COLS].apply(lambda x: x.str.contains('y')).fillna(False).astype(int)
-    for col in INT_COLS:
-        df[col] = pd.to_numeric(df[col], errors=coerce).fillna(0)
+    df[INT_COLS] = df[INT_COLS].apply(lambda x: pd.to_numeric(x, errors='coerce').fillna(0))
     return df
 
 
@@ -131,28 +129,27 @@ def main():
     logging.info(u"Data's initial shape: %s", df.shape)
 
     logging.info(u"Cleaning data")
-    df = df[INTERESTING_COLS]
-    df = df.rename(columns={
+    df = df[INTERESTING_COLS].rename(columns={
         u'PropCode': u"propcode", u'Year': u"year",
         u'Desc1': u'feature', u'Desc2': u'value'
     })
 
     # cleaning Year
-    df.year = df.year.apply(
-        lambda x: int(x) if (pd.notnull(x) and (isinstance(x, float) or x.isdigit())) else None
-    )
+    df.year = pd.to_numeric(df.year, errors='coerce')
     logging.info(u"Year data has been cleaned")
 
     # removing NA
     df = df.dropna()
-    logging.info(u"Shape after cleaning NA: %s", df.shape)
 
     # lowering
     df.feature = df.feature.apply(lambda x: x.strip().lower())
     df.value = df.value.apply(lambda x: x.strip().lower())
 
-    logging.info(u"Processing data")
+    # removing duplicated values of features per a propcode/year pair
     df = df.groupby(['propcode', 'year', 'feature']).value.apply(set).reset_index()
+    logging.info(u"Shape after cleaning: %s", df.shape)
+
+    logging.info(u"Processing data")
     df = pd.DataFrame(
         df.groupby(["propcode", "year"]).apply(process_prop_year_entry).values.tolist()
     )
@@ -168,7 +165,7 @@ if __name__ == '__main__':
                         help=u"Path to a csv file with properties' features")
     parser.add_argument('--id', default=";", dest="input_csv_delimiter",
                         help=u"The input file's delimiter. Default: ';'")
-    parser.add_argument('-o', default="HH_Cleaned_Features.csv", dest="output_csv",
+    parser.add_argument('-o', default="features.csv", dest="output_csv",
                         help=u'Path to an output file. Default: HH_Cleaned_Features.csv')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")

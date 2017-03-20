@@ -1,7 +1,7 @@
 # coding: utf-8
 
 u"""
-This script cleans and prepares contacts data for the future usage
+This script cleans and prepares the data set of contacts for the future usage
 """
 
 import argparse
@@ -10,9 +10,8 @@ import sys
 
 import pandas as pd
 
-from hh.cleaners.common import canonize_datetime, drop_null
-
 COLS_TO_DROP = [
+    u'createdate', u'last_brochure_date',  # no need
     u'outcode', u'donotemail', u'total_HH_Net', u'total_ho',  # no need
     u'oac_supergroup', u'oac_group', u'oac_subgroup',  # took the same with *_desc
     u'last_bookdate', u'last_book_year',  # can be taken from bookings
@@ -24,14 +23,6 @@ COLS_TO_DROP = [
     u'currentsourcecostid', u'currentsourcedesc', u'currentsourcecategory', u'FF'  # no need
 ]
 
-# INTERESTING_COLS = [
-#     u'avg_spend_per_head', u'code', u'country', u'createdate',
-#     u'historic_spend', u'last_brochure_date', u'oac_groupdesc',
-#     u'oac_subgroup_desc', u'oac_supergroup_desc', u'origsourcecategory',
-#     u'origsourcedesc', u'postcode', u'total_bookings'
-# ]
-
-DATE_COLS = [u'createdate', u'last_brochure_date']
 NOT_NA_COLS = [u"code"]
 
 
@@ -41,8 +32,7 @@ def main():
 
     logging.info(u"Cleaning data")
     df = df.drop(COLS_TO_DROP, axis=1)
-    df = drop_null(df, NOT_NA_COLS)
-    df = canonize_datetime(df, DATE_COLS)
+    df = df.dropna(subset=NOT_NA_COLS)
     logging.info(u"Shape after cleaning: %s", df.shape)
 
     logging.info(u"Dumping data to: %s", args.output_csv)
