@@ -10,7 +10,13 @@ import sys
 import numpy as np
 import pandas as pd
 
-from feature_matrix.functions import prepare_num_column
+from feature_matrix.functions import fix_outliers, density_based_cutter
+
+
+def prepare_num_column(s, max_p=99.9, bins=3):
+    max_value = np.percentile(s, max_p)
+    s = fix_outliers(s, 0, max_value)
+    return density_based_cutter(s, bins)[0]
 
 
 def get_bdf():
@@ -29,9 +35,10 @@ def get_idf(bdf):
         bdf[["propcode", "year"]].drop_duplicates(),
         on=["propcode", "year"]
     )
-    item_cols = ['propcode', 'year', 'region', 'stars']
+    item_cols = ['propcode', 'year', 'region', 'stars', 'sleeps']
     idf = idf[item_cols]
     idf.stars = prepare_num_column(idf.stars)
+    idf.sleeps = prepare_num_column(idf.sleeps, bins=5)
     return idf
 
 
@@ -58,7 +65,10 @@ def get_fdf(bdf):
         'games room',
         'golf course nearby - good',
         'good for honeymooners',
+        'high chair',
         'hot tub',
+        'indoor pool',
+        'jacuzzi',
         'on a farm',
         'open fire or woodburner',
         'outdoor heated pool',
@@ -73,7 +83,6 @@ def get_fdf(bdf):
         'sea views',
         'shooting',
         'snooker table',
-        'stairgate',
         'tennis court',
         'travel cot',
         'video',
@@ -81,10 +90,9 @@ def get_fdf(bdf):
         'wheel chair facilities'
     ]
     fdf = fdf[["propcode", "year"] + feature_cols]
-    # converting to binary
     fdf.enhanced = fdf.enhanced.apply(lambda x: 0 if pd.isnull(x) else 1)
     fdf.vineyard = fdf.vineyard.apply(lambda x: 0 if pd.isnull(x) else 1)
-    fdf.stairgate = fdf.stairgate.apply(lambda x: 0 if pd.isnull(x) or x == 'no' else 1)
+    # converting to binary
     fdf[feature_cols] = fdf.fillna(0)[feature_cols].astype(bool).astype(int)
     return fdf
 
@@ -106,11 +114,16 @@ def main():
 
     cols_to_binarize = df.columns[df.dtypes == 'object'].drop(["bookcode", "propcode"])
     df = pd.get_dummies(df, columns=cols_to_binarize).fillna(0)
+    logging.info("Shape before cleaning: %s", df.shape)
 
     # dropping columns that can't change anything
-    feature_cols = df.columns.drop(["bookcode", "propcode"])
-    bad_col_ids = np.where(df[feature_cols].sum(axis=0) < args.min_values_per_column)[0]
-    df = df.drop(feature_cols[bad_col_ids], axis=1)
+    bad_feature_cols = []
+    for feature_col in df.columns.drop(["bookcode", "propcode"]):
+        items_per_feature = df.propcode[df[feature_col] == 1].unique().size
+        if items_per_feature < args.min_items_per_feature:
+            bad_feature_cols.append(feature_col)
+    df = df.drop(bad_feature_cols, axis=1)
+
     logging.info(u"Dumping prepared booking-feature matrix: %s", df.shape)
     df.to_csv(args.output_csv, index=False)
 
@@ -120,10 +133,10 @@ if __name__ == '__main__':
     parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with bookings")
     parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
     parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
-    parser.add_argument('-o', default="user_features.csv", dest="output_csv",
-                        help=u'Path to an output file. Default: user_features.csv')
-    parser.add_argument('-m', default=50, type=int, dest="min_values_per_column",
-                        help=u'Min binary values per column. Default: 50')
+    parser.add_argument('-o', default="bookings.csv", dest="output_csv",
+                        help=u'Path to an output file. Default: bookings.csv')
+    parser.add_argument('-m', default=10, type=int, dest="min_items_per_feature",
+                        help=u'Min items per feature. Default: 10')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
 

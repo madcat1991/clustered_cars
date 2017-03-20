@@ -5,30 +5,45 @@ import pandas as pd
 from pandas.tools.tile import _bins_to_cuts
 
 
-def _fix_outliers(s, min_v, max_v):
+def fix_outliers(s, min_v, max_v):
     s[pd.notnull(s) & (s < min_v)] = min_v
     s[pd.notnull(s) & (s > max_v)] = max_v
     return s
 
 
-def _density_based_cutter(s, min_bin_size, min_value, max_value):
-    hist, bin_edges = np.histogram(s, bins='doane', range=(min_value, max_value))
-    hist[hist < min_bin_size] = 0
-    pos_ids = np.where(hist > 0)[0]
+def density_based_cutter(s, bins):
+    min_value = max(1, int(s.min()))
+    max_value = int(s.max())
 
-    bin_edges = bin_edges[pos_ids]
-    bin_edges[0] = min(bin_edges[0], min_value)
-    if bin_edges[-1] < max_value:
-        bin_edges = np.append(bin_edges, max_value)
+    bin_edges = list(range(min_value, max_value + 1))
+    hist = [0] * (len(bin_edges))
 
-    return _bins_to_cuts(s, bin_edges, include_lowest=True, retbins=True)
+    for value in s:
+        hist[int(value) - min_value] += 1
 
+    while len(bin_edges) - 1 > bins:
+        target_id = np.argmin(hist)
 
-def prepare_num_column(s, max_value_p=99.95, min_bin_p=0.05, min_value=None):
-    s = _fix_outliers(s, 0, np.percentile(s, max_value_p))
-
-    min_bin_size = s.size * min_bin_p
-    if min_value is None:
-        min_value = s.min()
-
-    return _density_based_cutter(s, min_bin_size, min_value, s.max())[0]
+        if target_id != 0 and target_id != len(hist) - 1:
+            if hist[target_id - 1] < hist[target_id + 1]:
+                hist[target_id - 1] += hist[target_id]
+                bin_edges.pop(target_id)
+                hist.pop(target_id)
+            else:
+                if target_id + 1 != len(hist) - 1:
+                    hist[target_id] += hist[target_id + 1]
+                    bin_edges.pop(target_id + 1)
+                    hist.pop(target_id + 1)
+                else:
+                    hist[target_id] += hist[target_id - 1]
+                    bin_edges.pop(target_id - 1)
+                    hist.pop(target_id - 1)
+        elif target_id == 0:
+            hist[target_id] += hist[target_id + 1]
+            bin_edges.pop(target_id + 1)
+            hist.pop(target_id + 1)
+        else:
+            hist[target_id] += hist[target_id - 1]
+            bin_edges.pop(target_id - 1)
+            hist.pop(target_id - 1)
+    return _bins_to_cuts(s, np.array(bin_edges), include_lowest=True, retbins=True)

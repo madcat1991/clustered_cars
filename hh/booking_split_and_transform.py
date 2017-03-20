@@ -15,6 +15,7 @@ import sys
 
 from pandas.tools.tile import _bins_to_cuts
 
+from feature_matrix.functions import density_based_cutter, fix_outliers
 from hh.cleaners.common import canonize_datetime
 from misc.splitter import TimeWindowSplitter
 
@@ -45,37 +46,6 @@ def actualize_testing_data(training_df, testing_df):
     return testing_df
 
 
-def _density_based_cutter(s, bins):
-    min_value = max(1, int(s.min()))
-    max_value = int(s.max())
-
-    bin_edges = list(range(min_value, max_value + 2))
-    hist = [0] * (len(bin_edges) - 1)
-
-    for value in s:
-        hist[int(value) - min_value] += 1
-
-    while len(hist) > bins:
-        target_id = np.argmin(hist)
-
-        if target_id != 0 and target_id != len(hist) - 1:
-            if hist[target_id - 1] < hist[target_id + 1]:
-                hist[target_id - 1] += hist[target_id]
-                bin_edges.pop(target_id)
-            else:
-                hist[target_id + 1] += hist[target_id]
-                bin_edges.pop(target_id + 1)
-        elif target_id == 0:
-            hist[target_id + 1] += hist[target_id]
-            bin_edges.pop(target_id + 1)
-        else:
-            hist[target_id - 1] += hist[target_id]
-            bin_edges.pop(target_id)
-
-        hist.pop(target_id)
-    return _bins_to_cuts(s, np.array(bin_edges), include_lowest=True, retbins=True)
-
-
 def _simple_cleaning(df):
     df = df.drop(COLS_TO_DROP, axis=1)
     df[u'n_booked_days'] = (df.fdate - df.sdate).apply(lambda x: x.days)
@@ -87,21 +57,15 @@ def _simple_cleaning(df):
 
 
 def _clean_numeric_outliers(training_df, testing_df, max_p=99.9):
-
-    def _fix_outliers(s, min_v, max_v):
-        s[pd.notnull(s) & (s < min_v)] = min_v
-        s[pd.notnull(s) & (s > max_v)] = max_v
-        return s
-
     for col in COLS_TO_BIN:
         max_value = np.percentile(training_df[col], max_p)
-        training_df[col] = _fix_outliers(training_df[col], 0, max_value)
-        testing_df[col] = _fix_outliers(testing_df[col], 0, max_value)
+        training_df[col] = fix_outliers(training_df[col], 0, max_value)
+        testing_df[col] = fix_outliers(testing_df[col], 0, max_value)
     return training_df, testing_df
 
 
 def _convert_to_cat(training_df, testing_df, col, bins):
-    s, bin_edges = _density_based_cutter(training_df[col], bins)
+    s, bin_edges = density_based_cutter(training_df[col], bins)
     training_df[col] = s
     testing_df[col] = _bins_to_cuts(testing_df[col], bin_edges, include_lowest=True)
     training_df[col] = training_df[col].astype('object')
@@ -110,12 +74,12 @@ def _convert_to_cat(training_df, testing_df, col, bins):
 
 
 def _numeric_to_categorical(training_df, testing_df):
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "adults", 3)
+    training_df, testing_df = _convert_to_cat(training_df, testing_df, "adults", 4)
     training_df, testing_df = _convert_to_cat(training_df, testing_df, "children", 3)
     training_df, testing_df = _convert_to_cat(training_df, testing_df, "babies", 3)
     training_df, testing_df = _convert_to_cat(training_df, testing_df, "avg_spend_per_head", 5)
     training_df, testing_df = _convert_to_cat(training_df, testing_df, "n_booked_days", 5)
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "drivetime", 3)
+    training_df, testing_df = _convert_to_cat(training_df, testing_df, "drivetime", 4)
     return training_df, testing_df
 
 
