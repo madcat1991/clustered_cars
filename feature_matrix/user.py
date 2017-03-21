@@ -7,9 +7,7 @@ import argparse
 import logging
 import sys
 
-import numpy as np
 import pandas as pd
-from sklearn.preprocessing import binarize
 
 from feature_matrix.functions import prepare_num_column
 
@@ -54,6 +52,7 @@ def get_fdf(bdf):
         'barbecue',
         'big gardens or farm to wander',
         'boats or mooring available',
+        'broadband',
         'coast 5 miles',
         'complex',
         'countryside views',
@@ -62,12 +61,17 @@ def get_fdf(bdf):
         'enhanced',
         'farm help',
         'fishing - private',
-        'games room',
         'golf course nearby - good',
+        'high chair',
         'hot tub',
+        'indoor pool',
+        'jacuzzi',
+        'no smoking',
         'on a farm',
         'open fire or woodburner',
         'outdoor heated pool',
+        'outdoor unheated pool',
+        'parking',
         'part disabled',
         'piano',
         'pool',
@@ -79,8 +83,9 @@ def get_fdf(bdf):
         'sea views',
         'shooting',
         'snooker table',
-        'stairgate',
+        'steam room',
         'tennis court',
+        'travel cot',
         'vineyard',
         'wheel chair facilities'
     ]
@@ -88,7 +93,7 @@ def get_fdf(bdf):
     # converting to binary
     fdf.enhanced = fdf.enhanced.apply(lambda x: 0 if pd.isnull(x) else 1)
     fdf.vineyard = fdf.vineyard.apply(lambda x: 0 if pd.isnull(x) else 1)
-    fdf.stairgate = fdf.stairgate.apply(lambda x: 0 if pd.isnull(x) or x == 'no' else 1)
+    fdf.parking = fdf.parking.apply(lambda x: 0 if pd.isnull(x) else 1)
     fdf[feature_cols] = fdf.fillna(0)[feature_cols].astype(bool).astype(int)
     return fdf
 
@@ -116,11 +121,18 @@ def main():
     df = pd.get_dummies(df, columns=cols_to_binarize).fillna(0)
     df["booking_cnt"] = 1  # for future purposes
     df = df.groupby("code").sum().reset_index()
+    logging.info("Shape before cleaning: %s", df.shape)
 
     # dropping columns that can't change anything
-    feature_cols = df.columns.drop("code")
-    bad_col_ids = np.where(binarize(df[feature_cols]).sum(axis=0) < args.min_values_per_column)[0]
-    df = df.drop(feature_cols[bad_col_ids], axis=1)
+    bad_feature_cols = []
+    for feature_col in df.columns.drop(["code"]):
+        users_per_feature = df.code[df[feature_col] > 0].unique().size
+        if users_per_feature < args.min_users_per_feature:
+            bad_feature_cols.append(feature_col)
+
+    logging.info("Bad columns: %s", bad_feature_cols)
+    df = df.drop(bad_feature_cols, axis=1)
+
     logging.info(u"Dumping prepared user-feature matrix: %s", df.shape)
     df.to_csv(args.output_csv, index=False)
 
@@ -131,10 +143,10 @@ if __name__ == '__main__':
     parser.add_argument("-c", required=True, dest="contact_csv", help=u"Path to a csv file with contacts")
     parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
     parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
-    parser.add_argument('-o', default="user_features.csv", dest="output_csv",
+    parser.add_argument('-o', default="users.csv", dest="output_csv",
                         help=u'Path to an output file. Default: user_features.csv')
-    parser.add_argument('-m', default=2, type=int, dest="min_values_per_column",
-                        help=u'Min binary values per column. Default: 2')
+    parser.add_argument('-m', default=2, type=int, dest="min_users_per_feature",
+                        help=u'Min users per feature. Default: 2')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
 

@@ -1,22 +1,15 @@
 # coding: utf-8
 
 u"""
-The script prepares item-feature vectors
+The script prepares booking-feature vectors
 """
 import argparse
 import logging
 import sys
 
-import numpy as np
 import pandas as pd
 
-from feature_matrix.functions import fix_outliers, density_based_cutter
-
-
-def prepare_num_column(s, max_p=99.9, bins=3):
-    max_value = np.percentile(s, max_p)
-    s = fix_outliers(s, 0, max_value)
-    return density_based_cutter(s, bins)[0]
+from feature_matrix.functions import prepare_num_column
 
 
 def get_bdf():
@@ -72,6 +65,7 @@ def get_fdf(bdf):
         'on a farm',
         'open fire or woodburner',
         'outdoor heated pool',
+        'parking',
         'part disabled',
         'piano',
         'pool',
@@ -92,6 +86,7 @@ def get_fdf(bdf):
     fdf = fdf[["propcode", "year"] + feature_cols]
     fdf.enhanced = fdf.enhanced.apply(lambda x: 0 if pd.isnull(x) else 1)
     fdf.vineyard = fdf.vineyard.apply(lambda x: 0 if pd.isnull(x) else 1)
+    fdf.parking = fdf.parking.apply(lambda x: 0 if pd.isnull(x) else 1)
     # converting to binary
     fdf[feature_cols] = fdf.fillna(0)[feature_cols].astype(bool).astype(int)
     return fdf
@@ -122,6 +117,8 @@ def main():
         items_per_feature = df.propcode[df[feature_col] == 1].unique().size
         if items_per_feature < args.min_items_per_feature:
             bad_feature_cols.append(feature_col)
+
+    logging.info("Bad columns: %s", bad_feature_cols)
     df = df.drop(bad_feature_cols, axis=1)
 
     logging.info(u"Dumping prepared booking-feature matrix: %s", df.shape)

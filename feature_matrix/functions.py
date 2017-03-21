@@ -47,3 +47,9 @@ def density_based_cutter(s, bins):
             bin_edges.pop(target_id - 1)
             hist.pop(target_id - 1)
     return _bins_to_cuts(s, np.array(bin_edges), include_lowest=True, retbins=True)
+
+
+def prepare_num_column(s, max_p=99.9, bins=3):
+    max_value = np.percentile(s, max_p)
+    s = fix_outliers(s, 0, max_value)
+    return density_based_cutter(s, bins)[0]
