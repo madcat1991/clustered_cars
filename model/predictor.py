@@ -6,7 +6,6 @@ The experiment with user cluster - booking cluster IBCF.
 
 import argparse
 import logging
-import pickle
 import sys
 
 import numpy as np
@@ -17,13 +16,14 @@ from sklearn.preprocessing import binarize
 from ibcf.matrix_functions import get_sparse_matrix_info
 from ibcf.recs import get_topk_recs
 from ibcf.similarity import get_similarity_matrix
+from misc.common import get_ug_data, get_bg_data
 
 
 def get_matrix(df, uid_to_ug, bid_to_bg):
-    uids_per_ug = pd.Series(uid_to_ug.values()).value_counts()
+    uids_per_ug = pd.Series(list(uid_to_ug.values())).value_counts()
     u_mult = 1.0 / uids_per_ug.sort_index().values
 
-    bids_per_ug = pd.Series(bid_to_bg.values()).value_counts()
+    bids_per_ug = pd.Series(list(bid_to_bg.values())).value_counts()
     b_mult = 1.0 / bids_per_ug.sort_index().values
 
     cols = []
@@ -38,43 +38,6 @@ def get_matrix(df, uid_to_ug, bid_to_bg):
     return m
 
 
-def get_ug_data():
-    uid_to_ug = {}
-    with open(args.user_cluster) as f:
-        # skipping
-        while not f.next().startswith("Cluster"):
-            pass
-
-        cl_id = 0
-        for line in f:
-            if line.startswith("Users:"):
-                for uid in line.lstrip("Users:").split(","):
-                    uid_to_ug[uid.strip()] = cl_id
-            elif line.startswith("Cluster"):
-                cl_id += 1
-    return uid_to_ug
-
-
-def get_bg_data():
-    bid_to_bg = {}
-    bg_iids = {}
-    with open(args.booking_cluster) as f:
-        # skipping
-        while not f.next().startswith("Cluster"):
-            pass
-
-        cl_id = 0
-        for line in f:
-            if line.startswith("Bookings:"):
-                for bid in line.lstrip("Bookings:").split(","):
-                    bid_to_bg[bid.strip()] = cl_id
-            elif line.startswith("Items:"):
-                bg_iids[cl_id] = {iid.strip() for iid in line.lstrip("Items:").split(",")}
-            elif line.startswith("Cluster"):
-                cl_id += 1
-    return bid_to_bg, bg_iids
-
-
 def print_recs(recs_m, user_list, uid_to_ug):
     for uid in user_list:
         ug = uid_to_ug.get(uid)
@@ -84,15 +47,15 @@ def print_recs(recs_m, user_list, uid_to_ug):
             for arg_id in np.argsort(rec_row.data)[::-1]:
                 bg = rec_row.indices[arg_id]
                 rec_bgs.append(bg)
-            print "User %s, cluster #%s: %s" % (uid, ug, ", ".join(map(str, rec_bgs)))
+            print("User %s, cluster #%s: %s" % (uid, ug, ", ".join(map(str, rec_bgs))))
         else:
-            print "User %s: does not exist in the dataset" % uid
+            print("User %s: does not exist in the dataset" % uid)
 
 
 def main():
     logging.info(u"Getting clusters data")
-    uid_to_ug = get_ug_data()
-    bid_to_bg, bg_iids = get_bg_data()
+    uid_to_ug = get_ug_data(args.user_cluster)
+    bid_to_bg, bg_iids = get_bg_data(args.booking_cluster)
 
     logging.info(u"Creating user-item matrix")
     df = pd.read_csv(args.data_csv)
@@ -113,14 +76,14 @@ def main():
         'NMS771535', 'NMS395390', 'ZZ35721', 'NMS61584', 'HM689', 'NMS585593', 'NMS981927',
         'NMS1066637', 'NMS1029908', 'NMS631625', 'NMS276860', 'NMS679126', 'NMS268544'
     ]
-    print "\nRecs for random users:"
+    print("\nRecs for random users:")
     print_recs(recs_m, random_users, uid_to_ug)
 
     selected_users = [
         'NMS449617', 'ZY82553', 'NMS230443', 'NMS105985', 'HS14266', 'NMS178887',
         'HF9739', 'NMS316975', 'NMS590280'
     ]
-    print "\nRecs for selected users:"
+    print("\nRecs for selected users:")
     print_recs(recs_m, selected_users, uid_to_ug)
 
 
@@ -128,10 +91,10 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument("-d", default='booking.csv', dest="data_csv",
                         help=u"Path to the file with bookings. Default: booking.csv")
-    parser.add_argument("-u", default='user.txt', dest="user_cluster",
-                        help=u"Path to the file with user clusters. Default: user.txt")
-    parser.add_argument("-b", default='booking.txt', dest="booking_cluster",
-                        help=u"Path to the file with booking clusters. Default: booking.txt")
+    parser.add_argument("-u", default='users.txt', dest="user_cluster",
+                        help=u"Path to the file with user clusters. Default: users.txt")
+    parser.add_argument("-b", default='bookings.txt', dest="booking_cluster",
+                        help=u"Path to the file with booking clusters. Default: bookings.txt")
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
 
