@@ -86,7 +86,7 @@ if __name__ == '__main__':
     args.ui_iid_recs = "/Users/user/PyProjects/clustered_cars/experiment/ui_iid_recs.pkl"
     args.output = "/Users/user/PyProjects/clustered_cars/experiment/ui_iid_based_bg_recs.pkl"
     args.booking_features = "/Users/user/PyProjects/clustered_cars/data/featured/booking.csv"
-    args.booking_cluster = '/Users/user/PyProjects/clustered_cars/data/clustered/booking.txt'
+    args.booking_cluster = '/Users/user/PyProjects/clustered_cars/data/clustered/bookings.txt'
     args.log_level = 'INFO'
 
     logging.basicConfig(

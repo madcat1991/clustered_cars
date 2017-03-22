@@ -17,6 +17,7 @@ from sklearn.preprocessing import binarize
 from ibcf.matrix_functions import get_sparse_matrix_info
 from ibcf.recs import get_topk_recs
 from ibcf.similarity import get_similarity_matrix
+from misc.common import get_ug_data, get_bg_data
 
 
 def get_training_matrix(df, uid_to_ug, bid_to_bg):
@@ -85,47 +86,10 @@ def store_data_for_eval(recs_m, testing_df, uid_to_ug, bg_iids):
         pickle.dump(ui_iids_cnt, f)
 
 
-def get_ug_data():
-    uid_to_ug = {}
-    with open(args.user_cluster) as f:
-        # skipping
-        while not f.next().startswith("Cluster"):
-            pass
-
-        cl_id = 0
-        for line in f:
-            if line.startswith("Users:"):
-                for uid in line.lstrip("Users:").split(","):
-                    uid_to_ug[uid.strip()] = cl_id
-            elif line.startswith("Cluster"):
-                cl_id += 1
-    return uid_to_ug
-
-
-def get_bg_data():
-    bid_to_bg = {}
-    bg_iids = {}
-    with open(args.booking_cluster) as f:
-        # skipping
-        while not f.next().startswith("Cluster"):
-            pass
-
-        cl_id = 0
-        for line in f:
-            if line.startswith("Bookings:"):
-                for bid in line.lstrip("Bookings:").split(","):
-                    bid_to_bg[bid.strip()] = cl_id
-            elif line.startswith("Items:"):
-                bg_iids[cl_id] = {iid.strip() for iid in line.lstrip("Items:").split(",")}
-            elif line.startswith("Cluster"):
-                cl_id += 1
-    return bid_to_bg, bg_iids
-
-
 def main():
     logging.info(u"Getting clusters data")
-    uid_to_ug = get_ug_data()
-    bid_to_bg, bg_iids = get_bg_data()
+    uid_to_ug = get_ug_data(args.user_cluster)
+    bid_to_bg, bg_iids = get_bg_data(args.booking_cluster)
 
     logging.info(u"Creating matrices")
     training_df = pd.read_csv(args.training_csv)
@@ -172,8 +136,8 @@ if __name__ == '__main__':
 
     args.training_csv = '/Users/user/PyProjects/clustered_cars/data/training.csv'
     args.testing_csv = '/Users/user/PyProjects/clustered_cars/data/testing.csv'
-    args.user_cluster = '/Users/user/PyProjects/clustered_cars/data/clustered/user.txt'
-    args.booking_cluster = '/Users/user/PyProjects/clustered_cars/data/clustered/booking.txt'
+    args.user_cluster = '/Users/user/PyProjects/clustered_cars/data/clustered/users.txt'
+    args.booking_cluster = '/Users/user/PyProjects/clustered_cars/data/clustered/bookings.txt'
     args.log_level = 'INFO'
 
     logging.basicConfig(
