@@ -1,7 +1,7 @@
 # coding: utf-8
 
 from sklearn.preprocessing import normalize
-from matrix_functions import nullify_main_diagonal, get_topk
+from ibcf.matrix_functions import nullify_main_diagonal, get_topk
 
 
 def get_ib_topk_cosine_sim(ui_matrix, top=None):

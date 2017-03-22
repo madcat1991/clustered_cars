@@ -4,7 +4,7 @@
 Methods for item-based top-k CF recommendations
 """
 
-from matrix_functions import get_topk
+from ibcf.matrix_functions import get_topk
 
 
 def get_topk_recs(ui_vector, sim_matrix, e_matrix, top=None):
