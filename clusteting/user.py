@@ -3,6 +3,7 @@
 u"""
 The script clusters users
 """
+
 import argparse
 import logging
 import sys
@@ -24,7 +25,9 @@ def main():
     tfidf = TfidfTransformer().fit_transform(df[feature_cols])
 
     logging.info(u"Running PCA")
-    feature_part = PCA(n_components=args.n_components).fit_transform(tfidf.todense())
+    pca = PCA(n_components=args.n_components)
+    feature_part = pca.fit_transform(tfidf.todense())
+    logging.info("PCA explained variance ratio: %.3f", sum(pca.explained_variance_ratio_))
 
     logging.info(u"Clustering via K-Means. Number of clusters: %s", args.n_clusters)
     km = MiniBatchKMeans(
@@ -45,7 +48,7 @@ def main():
             f.write("%s: %s\n" % (k, v))
         f.write("*** END INFO ***\n")
 
-        for cl_id in xrange(args.n_clusters):
+        for cl_id in range(args.n_clusters):
             cluster = df[km.labels_ == cl_id]
 
             # mean average usage of explanatory features in the cluster
@@ -69,8 +72,8 @@ if __name__ == '__main__':
                         help=u"Number of clusters to produce. Default: 900")
     parser.add_argument("-c", default=50, dest="n_components", type=int,
                         help=u"Number of PCA components to consider. Default: 50")
-    parser.add_argument('-o', default="user.txt", dest="output_path",
-                        help=u'Path to an output file. Default: user.txt')
+    parser.add_argument('-o', default="users.txt", dest="output_path",
+                        help=u'Path to an output file. Default: users.txt')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
 

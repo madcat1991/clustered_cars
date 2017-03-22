@@ -3,6 +3,7 @@
 u"""
 The script clusters bookings
 """
+
 import argparse
 import logging
 import sys
@@ -19,7 +20,9 @@ def main():
     feature_cols = df.columns.drop(RESERVED_COLS)
 
     logging.info(u"Running PCA")
-    feature_part = PCA(n_components=args.n_components).fit_transform(df[feature_cols])
+    pca = PCA(n_components=args.n_components)
+    feature_part = pca.fit_transform(df[feature_cols])
+    logging.info("PCA explained variance ratio: %.3f", sum(pca.explained_variance_ratio_))
 
     logging.info(u"Clustering via K-Means. Number of clusters: %s", args.n_clusters)
     km = MiniBatchKMeans(
@@ -39,14 +42,14 @@ def main():
 
         items_per_cluster = pd.Series({
             cl_id: df.propcode[km.labels_ == cl_id].unique().size
-            for cl_id in xrange(args.n_clusters)
+            for cl_id in range(args.n_clusters)
         })
         f.write("*** ITEMS INFO ***\n")
         for k, v in items_per_cluster.describe().iteritems():
             f.write("%s: %s\n" % (k, v))
         f.write("***\n")
 
-        for cl_id in xrange(args.n_clusters):
+        for cl_id in range(args.n_clusters):
             cluster = df[km.labels_ == cl_id]
 
             # average usage of explanatory features in the cluster
@@ -74,8 +77,8 @@ if __name__ == '__main__':
                         help=u"Number of clusters to produce. Default: 400")
     parser.add_argument("-p", default=15, dest="n_components", type=int,
                         help=u"Number of PCA components. Default: 15")
-    parser.add_argument('-o', default="user.txt", dest="output_path",
-                        help=u'Path to an output file. Default: booking.txt')
+    parser.add_argument('-o', default="bookings.txt", dest="output_path",
+                        help=u'Path to an output file. Default: bookings.txt')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
 
