@@ -1,5 +1,3 @@
-# coding: utf-8
-
 """
 Methods for item-based top-k CF recommendations
 """

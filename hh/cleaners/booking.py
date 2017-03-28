@@ -1,6 +1,4 @@
-# coding: utf-8
-
-u"""
+"""
 This script cleans and prepares the data set of bookings for the future usage
 """
 

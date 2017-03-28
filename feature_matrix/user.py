@@ -1,6 +1,4 @@
-# coding: utf-8
-
-u"""
+"""
 The script prepares user-feature vectors
 """
 import argparse

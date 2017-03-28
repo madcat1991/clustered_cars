@@ -1,5 +1,3 @@
-# coding: utf-8
-
 from sklearn.preprocessing import normalize
 from ibcf.matrix_functions import nullify_main_diagonal, get_topk
 

@@ -1,6 +1,4 @@
-# coding: utf-8
-
-u"""
+"""
 The script splits a booking csv dataset into testing and training
 parts based on timestamp column. Then it transforms the parts
 into binary mode.

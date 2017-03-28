@@ -1,5 +1,3 @@
-# coding: utf-8
-
 import numpy as np
 import pandas as pd
 from pandas.tools.tile import _bins_to_cuts

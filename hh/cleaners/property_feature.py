@@ -1,6 +1,4 @@
-# coding: utf-8
-
-u"""
+"""
 This script cleans and prepares the data set of properties' features for the future usage
 """
 

@@ -1,4 +1,3 @@
-# coding: utf-8
 import logging
 import sys
 
@@ -15,7 +14,7 @@ def get_bg_data():
     bg_iids = {}
     with open(args.booking_cluster) as f:
         # skipping
-        while not f.next().startswith("Cluster"):
+        while not next(f).startswith("Cluster"):
             pass
 
         cl_id = 0

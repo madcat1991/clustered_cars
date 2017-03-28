@@ -1,6 +1,4 @@
-# coding: utf-8
-
-u"""
+"""
 The experiment with user-item IBCF. Only information about users and items
 """
 
@@ -71,7 +69,7 @@ def hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col):
 
 
 def store_data_for_eval(recs_m, testing_df, uid_to_row, iid_to_col):
-    col_to_iid = {v: k for k, v in iid_to_col.iteritems()}
+    col_to_iid = {v: k for k, v in iid_to_col.items()}
     with open("ui_iids_cnt.pkl") as f:
         ui_iids_cnt = pickle.load(f)
 
