@@ -65,3 +65,9 @@ local/
 *.csv
 data/
 *.mdb
+
+# Faiss files
+# check https://github.com/facebookresearch/faiss for the files
+faiss.py
+swigfaiss.py
+_swigfaiss.so
