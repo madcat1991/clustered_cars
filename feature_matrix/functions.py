@@ -16,7 +16,7 @@ def density_based_cutter(s, bins):
     bin_edges = list(range(min_value, max_value + 1))
     hist = [0] * (len(bin_edges))
 
-    for value in s:
+    for value in s.dropna():
         hist[int(value) - min_value] += 1
 
     while len(bin_edges) - 1 > bins:

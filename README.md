@@ -15,6 +15,8 @@ contains scripts that convert the easy-to-process data into a
 feature-style format, i.e., presents each user/booking as a feature
 vector.
 
+## Feature space
+
 ## Clustering
 
 The scripts from the `clustering` folder can be used to cluster
@@ -32,11 +34,11 @@ for more details.
 
 To run the basic offline evaluation check the `evaluation` folder.
 
-The script `booking_split_and_transform.py` splits the prepared bookings
-into testing and training parts. To convert resulting training booking
-into the feature representation use the `feature_matrix/booking.py`
-script setting parameter `-b` to the csv file with the training
-bookings.
+The script `booking_split_and_transform.py` transforms the cleaned
+booking data and splits it into testing and training parts. To convert
+resulting training booking into the feature representation use the
+`feature_matrix/booking.py` script setting parameter `-b` to the csv
+file with the training bookings.
 
 ## Example
 

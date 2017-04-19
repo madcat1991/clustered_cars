@@ -17,6 +17,7 @@ def get_bdf():
         'breakpoint', 'adults', 'children', 'babies',
         'avg_spend_per_head', 'pets'
     ]
+    logging.info("Skipped booking columns: %s", set(bdf.columns).difference(booking_cols))
     return bdf[booking_cols]
 
 
@@ -26,7 +27,8 @@ def get_idf(bdf):
         bdf[["propcode", "year"]].drop_duplicates(),
         on=["propcode", "year"]
     )
-    item_cols = ['propcode', 'year', 'region', 'stars', 'sleeps']
+    item_cols = ['propcode', 'year', 'region', 'stars', 'sleeps', 'shortbreakok']
+    logging.info("Skipped property columns: %s", set(idf.columns).difference(item_cols))
     idf = idf[item_cols]
     idf.stars = prepare_num_column(idf.stars)
     idf.sleeps = prepare_num_column(idf.sleeps, bins=5)
@@ -79,8 +81,22 @@ def get_fdf(bdf):
         'travel cot',
         'video',
         'vineyard',
-        'wheel chair facilities'
+        'wheel chair facilities',
+        'safety deposit box',
+        'river or estuary views',
+        'outdoor unheated pool',
+        'no smoking',
+        'steam room',
+        'wedding venue',
+        'maid service',
+        'pamper by the pool',
+        'childrens play area',
+        'extra infant equipment',
+        'views',
+        'air conditioning',
+        'cycle hire available',
     ]
+    logging.info("Skipped features: %s", set(fdf.columns).difference(feature_cols))
     fdf = fdf[["propcode", "year"] + feature_cols]
     fdf.enhanced = fdf.enhanced.apply(lambda x: 0 if pd.isnull(x) else 1)
     fdf.vineyard = fdf.vineyard.apply(lambda x: 0 if pd.isnull(x) else 1)
@@ -116,7 +132,7 @@ def main():
         if items_per_feature < args.min_items_per_feature:
             bad_feature_cols.append(feature_col)
 
-    logging.info("Bad columns: %s", bad_feature_cols)
+    logging.info("Features with less than %s items: %s", args.min_items_per_feature, bad_feature_cols)
     df = df.drop(bad_feature_cols, axis=1)
 
     logging.info(u"Dumping prepared booking-feature matrix: %s", df.shape)

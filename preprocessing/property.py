@@ -27,8 +27,6 @@ BOOL_COLS = [
     u'shortbreakok'
 ]
 
-FLOAT_COLS = [u'stars']
-
 NOT_NA_COLS = [u'propcode', u'propid', u'year']
 
 
@@ -44,6 +42,7 @@ def main():
 
     df[BOOL_COLS] = df[BOOL_COLS].apply(lambda x: x.str.contains('true', case=False, na=False)).astype(int)
     df[INT_COLS] = df[INT_COLS].apply(lambda x: pd.to_numeric(x))
+    df.stars = pd.to_numeric(df.stars, errors='coerce')
 
     processed_columns = set(df.columns).union(COLS_TO_DROP)
     check_processed_columns(processed_columns, original_columns)
