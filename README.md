@@ -9,15 +9,11 @@ Holidays (HH).
 HH provides us with datasets full of raw data. So, before creating the
 model, data should be preprocessed to machine-friendly format.
 
-How to do this?
-
-1. the folder `hh/preprocessing` contains scripts to clean and convert HH's
-data sets into an easy-to-process format
-2. the script `hh/booking_split_and_transform.py` splits the prepared
-bookings into testing and training parts
-3. the `feature_matrix` folder contains scripts that convert
-the easy-to-process data into a feature-style format, i.e.,
-presents each user/booking as a feature vector
+The folder `preprocessing` contains scripts to clean and convert HH's
+data sets into an easy-to-process format. The `feature_matrix` folder
+contains scripts that convert the easy-to-process data into a
+feature-style format, i.e., presents each user/booking as a feature
+vector.
 
 ## Clustering
 
@@ -34,7 +30,13 @@ for more details.
 
 ## Evaluation
 
-To run the basic offline evaluation check the `experiment` folder.
+To run the basic offline evaluation check the `evaluation` folder.
+
+The script `booking_split_and_transform.py` splits the prepared bookings
+into testing and training parts. To convert resulting training booking
+into the feature representation use the `feature_matrix/booking.py`
+script setting parameter `-b` to the csv file with the training
+bookings.
 
 ## Example
 
