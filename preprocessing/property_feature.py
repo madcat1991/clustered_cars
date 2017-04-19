@@ -8,7 +8,9 @@ import sys
 
 import pandas as pd
 
-INTERESTING_COLS = [u'PropCode', u'Year', u'Desc1', u'Desc2']
+from preprocessing.common import raw_data_to_df, check_processed_columns
+
+INTERESTING_COLS = [u'propcode', u'year', u'desc1', u'desc2']
 
 FEATURES_TO_DROP = [
     'arrival time', 'change day',  # no need
@@ -26,6 +28,7 @@ FEATURES_TO_DROP = [
 
 
 YES_NO_COLS = [
+    'air conditioning',
     'audio tour',
     'baby sitting',
     'barbecue',
@@ -38,8 +41,10 @@ YES_NO_COLS = [
     'coast 5 miles',
     'complex',
     'countryside views',
+    'cycle hire available',
     'detached',
     'enclosed garden',
+    'extra infant equipment',
     'farm help',
     'fishing - private',
     'games room',
@@ -49,11 +54,13 @@ YES_NO_COLS = [
     'green cottages',
     'indoor pool',
     'maenporth estate',
+    'maid service',
     'no smoking',
     'on a farm',
     'open fire or woodburner',
     'outdoor heated pool',
     'outdoor unheated pool',
+    'pamper by the pool',
     'part disabled',
     'pets',
     'piano',
@@ -61,6 +68,7 @@ YES_NO_COLS = [
     'pub 1 mile walk',
     'railway 5 miles',
     'river or estuary views',
+    'safety deposit box',
     'sailing nearby',
     'sandy beach 1 mile',
     'sea views',
@@ -83,6 +91,7 @@ INT_COLS = [
     'freezer',
     'fridge',
     'fridge-freezer',
+    'fridge (larder)',
     'high chair',
     'hot tub',
     'jacuzzi',
@@ -100,7 +109,7 @@ INT_COLS = [
 
 CATEGORICAL_COLS = {
     u"charges", u"enhanced", u"groceries", u"heating",
-    u"linen", u"parking", u"towels", u"stairgate"
+    u"linen", u"parking", u"towels", u"stairgate", 'vineyard'
 }
 
 
@@ -123,14 +132,11 @@ def process_feature_df(df):
 
 
 def main():
-    df = pd.read_csv(args.input_csv, delimiter=args.input_csv_delimiter)
+    df = raw_data_to_df(args.input_csv, delimiter=args.input_csv_delimiter)
     logging.info(u"Data's initial shape: %s", df.shape)
 
     logging.info(u"Cleaning data")
-    df = df[INTERESTING_COLS].rename(columns={
-        u'PropCode': u"propcode", u'Year': u"year",
-        u'Desc1': u'feature', u'Desc2': u'value'
-    })
+    df = df[INTERESTING_COLS].rename(columns={u'desc1': u'feature', u'desc2': u'value'})
 
     # cleaning Year
     df.year = pd.to_numeric(df.year, errors='coerce')
@@ -138,20 +144,26 @@ def main():
 
     # removing NA
     df = df.dropna()
+    logging.info(u"Shape after dropping NA: %s", df.shape)
 
     # lowering
     df.feature = df.feature.apply(lambda x: x.strip().lower())
     df.value = df.value.apply(lambda x: x.strip().lower())
 
+    # checking in advance
+    original_features = set(df.feature)
+    processed_features = FEATURES_TO_DROP + YES_NO_COLS + INT_COLS + list(CATEGORICAL_COLS)
+    check_processed_columns(processed_features, original_features)
+
     # removing duplicated values of features per a propcode/year pair
     df = df.groupby(['propcode', 'year', 'feature']).value.apply(set).reset_index()
-    logging.info(u"Shape after cleaning: %s", df.shape)
 
     logging.info(u"Processing data")
     df = pd.DataFrame(
         df.groupby(["propcode", "year"]).apply(process_prop_year_entry).values.tolist()
     )
     df = process_feature_df(df)
+    logging.info(u"Shape after cleaning: %s", df.shape)
 
     logging.info(u"Dumping data to: %s", args.output_csv)
     df.to_csv(args.output_csv, index=False)

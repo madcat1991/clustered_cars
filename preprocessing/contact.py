@@ -6,11 +6,11 @@ import argparse
 import logging
 import sys
 
-import pandas as pd
+from preprocessing.common import raw_data_to_df, check_processed_columns
 
 COLS_TO_DROP = [
     u'createdate', u'last_brochure_date',  # no need
-    u'outcode', u'donotemail', u'total_HH_Net', u'total_ho',  # no need
+    u'outcode', u'donotemail', u'total_hh_net', u'total_ho',  # no need
     u'oac_supergroup', u'oac_group', u'oac_subgroup',  # took the same with *_desc
     u'last_bookdate', u'last_book_year',  # can be taken from bookings
     u'first_bookdate', u'first_book_year', u'last_sdate', u'first_sdate',  # can be taken from bookings
@@ -18,20 +18,24 @@ COLS_TO_DROP = [
     u'mosaic_group', u'mosaic_group_desc', u'mosaic_type', u'mosaic_type_desc',  # redundant
     u'recency',  # no need
     u'origsourcecostid',  # is a pair of u'origsourcedesc', u'origsourcecategory'
-    u'currentsourcecostid', u'currentsourcedesc', u'currentsourcecategory', u'FF'  # no need
+    u'currentsourcecostid', u'currentsourcedesc', u'currentsourcecategory', u'ff'  # no need
 ]
 
 NOT_NA_COLS = [u"code"]
 
 
 def main():
-    df = pd.read_csv(args.input_csv, delimiter=args.input_csv_delimiter)
+    df = raw_data_to_df(args.input_csv, args.input_csv_delimiter)
+    original_columns = df.columns
     logging.info(u"DF initial shape: %s", df.shape)
 
     logging.info(u"Cleaning data")
     df = df.drop(COLS_TO_DROP, axis=1)
     df = df.dropna(subset=NOT_NA_COLS)
     logging.info(u"Shape after cleaning: %s", df.shape)
+
+    processed_columns = set(df.columns).union(COLS_TO_DROP)
+    check_processed_columns(processed_columns, original_columns)
 
     logging.info(u"Dumping data to: %s", args.output_csv)
     df.to_csv(args.output_csv, index=False)
