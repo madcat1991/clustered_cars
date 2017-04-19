@@ -12,7 +12,7 @@ import numpy as np
 import pandas as pd
 from pandas.tools.tile import _bins_to_cuts
 
-from preprocessing.common import canonize_datetime
+from preprocessing.common import canonize_datetime, check_processed_columns
 from feature_matrix.functions import density_based_cutter, fix_outliers
 from misc.splitter import TimeWindowSplitter
 
@@ -102,6 +102,7 @@ def main():
     logging.info(u"Start")
     df = pd.read_csv(args.data_csv_path)
     df = canonize_datetime(df, DATE_COLS)
+    original_columns = df.columns
 
     # get training and testing
     tw_splitter = TimeWindowSplitter(args.data_percentage, args.test_percentage)
@@ -124,6 +125,12 @@ def main():
     training_df, testing_df = _clean_categorical_outliers(training_df, testing_df)
     logging.info(u"Training shape: %s", training_df.shape)
     logging.info(u"Testing shape: %s", testing_df.shape)
+
+    # quality check
+    training_columns = set(training_df.columns).union(COLS_TO_DROP + DATE_COLS).difference(['n_booked_days'])
+    check_processed_columns(training_columns, original_columns)
+    testing_columns = set(training_df.columns).union(COLS_TO_DROP + DATE_COLS).difference(['n_booked_days'])
+    check_processed_columns(testing_columns, original_columns)
 
     training_df.to_csv(args.training_csv, index=False)
     testing_df.to_csv(args.testing_csv, index=False)
