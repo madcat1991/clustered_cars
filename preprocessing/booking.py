@@ -8,7 +8,7 @@ import sys
 
 import pandas as pd
 
-from hh.cleaners.common import canonize_datetime, canonize_float
+from preprocessing.common import canonize_datetime, canonize_float
 
 OLD_BREAKPOINT_MATCHER = {
     2001: [
@@ -193,7 +193,7 @@ if __name__ == '__main__':
     parser.add_argument('--id', default=";", dest="input_csv_delimiter",
                         help=u"The input file's delimiter. Default: ';'")
     parser.add_argument('-o', default="bookings.csv", dest="output_csv",
-                        help=u'Path to an output file. Default: HH_Cleaned_Bookings.csv')
+                        help=u'Path to an output file. Default: booking.csv')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
     args = parser.parse_args()

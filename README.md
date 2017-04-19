@@ -11,7 +11,7 @@ model, data should be preprocessed to machine-friendly format.
 
 How to do this?
 
-1. the folder `hh/cleaners` contains scripts to clean and convert HH's
+1. the folder `hh/preprocessing` contains scripts to clean and convert HH's
 data sets into an easy-to-process format
 2. the script `hh/booking_split_and_transform.py` splits the prepared
 bookings into testing and training parts

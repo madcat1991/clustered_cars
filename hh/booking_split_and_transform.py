@@ -6,17 +6,15 @@ into binary mode.
 
 import argparse
 import logging
+import sys
 
 import numpy as np
 import pandas as pd
-import sys
-
 from pandas.tools.tile import _bins_to_cuts
 
+from preprocessing.common import canonize_datetime
 from feature_matrix.functions import density_based_cutter, fix_outliers
-from hh.cleaners.common import canonize_datetime
 from misc.splitter import TimeWindowSplitter
-
 
 COLS_TO_BIN = ["adults", "children", "babies", "avg_spend_per_head", "n_booked_days", "drivetime"]
 RESERVED_COLS = ["code", "year", "propcode", "bookcode"]

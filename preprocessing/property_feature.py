@@ -117,7 +117,7 @@ def process_prop_year_entry(group):
 
 def process_feature_df(df):
     df = df.drop(FEATURES_TO_DROP, axis=1)
-    df[YES_NO_COLS] = df[YES_NO_COLS].apply(lambda x: x.str.contains('y')).fillna(False).astype(int)
+    df[YES_NO_COLS] = df[YES_NO_COLS].apply(lambda x: x.str.contains('y', case=False, na=False)).astype(int)
     df[INT_COLS] = df[INT_COLS].apply(lambda x: pd.to_numeric(x, errors='coerce').fillna(0))
     return df
 
@@ -164,7 +164,7 @@ if __name__ == '__main__':
     parser.add_argument('--id', default=";", dest="input_csv_delimiter",
                         help=u"The input file's delimiter. Default: ';'")
     parser.add_argument('-o', default="features.csv", dest="output_csv",
-                        help=u'Path to an output file. Default: HH_Cleaned_Features.csv')
+                        help=u'Path to an output file. Default: property_feature.csv')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
     args = parser.parse_args()

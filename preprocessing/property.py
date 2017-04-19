@@ -1,5 +1,5 @@
 """
-This script cleans and prepares the data set of contacts for the future usage
+This script cleans and prepares the data set of properties for the future usage
 """
 
 import argparse
@@ -9,19 +9,25 @@ import sys
 import pandas as pd
 
 COLS_TO_DROP = [
-    u'createdate', u'last_brochure_date',  # no need
-    u'outcode', u'donotemail', u'total_HH_Net', u'total_ho',  # no need
-    u'oac_supergroup', u'oac_group', u'oac_subgroup',  # took the same with *_desc
-    u'last_bookdate', u'last_book_year',  # can be taken from bookings
-    u'first_bookdate', u'first_book_year', u'last_sdate', u'first_sdate',  # can be taken from bookings
-    u'last_brochure_year', u'available', u'decile',  # no need
-    u'mosaic_group', u'mosaic_group_desc', u'mosaic_type', u'mosaic_type_desc',  # redundant
-    u'recency',  # no need
-    u'origsourcecostid',  # is a pair of u'origsourcedesc', u'origsourcecategory'
-    u'currentsourcecostid', u'currentsourcedesc', u'currentsourcecategory', u'FF'  # no need
+    u'active', u'callflag', u'placeid',  # no need
+    u'createdate', u'changeday',  u'bandno', # no need
+    u'pageno',  u'gridx', u'gridy',  # no need
+    u'commission', u'latitude', u'longitude',  # no need
+    # u'bandchar', u'sb_bandno', u'opinion', ## changed to the new names
+    u'BandChar', u'Opinion',
 ]
 
-NOT_NA_COLS = [u"code"]
+INT_COLS = [
+    u'bathrooms', u'bedrooms', u'bunks', u'doubles',
+    u'familyrooms', u'sleeps', u'twin',
+    # u'shortbreakok', u'singles'
+]
+
+BOOL_COLS = [
+    u'shortbreakok'
+]
+
+NOT_NA_COLS = [u'propcode', u'propid', u'year']
 
 
 def main():
@@ -31,6 +37,10 @@ def main():
     logging.info(u"Cleaning data")
     df = df.drop(COLS_TO_DROP, axis=1)
     df = df.dropna(subset=NOT_NA_COLS)
+
+    df[BOOL_COLS] = df[BOOL_COLS].apply(lambda x: x.str.contains('true', case=False, na=False)).astype(int)
+    df[INT_COLS] = df[INT_COLS].apply(lambda x: pd.to_numeric(x))
+
     logging.info(u"Shape after cleaning: %s", df.shape)
 
     logging.info(u"Dumping data to: %s", args.output_csv)
@@ -40,11 +50,11 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-i', required=True, dest="input_csv",
-                        help=u'Path to a csv file with contacts')
+                        help=u'Path to a csv file with properties')
     parser.add_argument('--id', default=";", dest="input_csv_delimiter",
                         help=u"The input file's delimiter. Default: ';'")
-    parser.add_argument('-o', default="HH_Cleaned_Contact.csv", dest="output_csv",
-                        help=u'Path to an output file. Default: HH_Cleaned_Contact.csv')
+    parser.add_argument('-o', default="properties.csv", dest="output_csv",
+                        help=u'Path to an output file. Default: property.csv')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
     args = parser.parse_args()
