@@ -98,10 +98,10 @@ def get_fdf(bdf):
     ]
     logging.info("Skipped features: %s", set(fdf.columns).difference(feature_cols))
     fdf = fdf[["propcode", "year"] + feature_cols]
+    # converting to binary
     fdf.enhanced = fdf.enhanced.apply(lambda x: 0 if pd.isnull(x) else 1)
     fdf.vineyard = fdf.vineyard.apply(lambda x: 0 if pd.isnull(x) else 1)
     fdf.parking = fdf.parking.apply(lambda x: 0 if pd.isnull(x) else 1)
-    # converting to binary
     fdf[feature_cols] = fdf.fillna(0)[feature_cols].astype(bool).astype(int)
     return fdf
 
@@ -141,11 +141,11 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with bookings")
+    parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with transformed bookings")
     parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
     parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
     parser.add_argument('-o', default="bookings.csv", dest="output_csv",
-                        help=u'Path to an output file. Default: bookings.csv')
+                        help=u'Path to an output file. Default: booking_features.csv')
     parser.add_argument('-m', default=10, type=int, dest="min_items_per_feature",
                         help=u'Min items per feature. Default: 10')
     parser.add_argument("--log-level", default='INFO', dest="log_level",

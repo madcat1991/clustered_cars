@@ -17,6 +17,7 @@ def get_bdf():
         "pets", "category", "drivetime", "n_booked_days",
         "avg_spend_per_head"
     ]
+    logging.info("Skipped booking columns: %s", set(bdf.columns).difference(booking_cols))
     return bdf[booking_cols]
 
 
@@ -27,6 +28,7 @@ def get_idf(bdf):
         on=["propcode", "year"]
     )
     item_cols = ["propcode", "year", "stars"]
+    logging.info("Skipped property columns: %s", set(idf.columns).difference(item_cols))
     idf = idf[item_cols]
     idf.stars = prepare_num_column(idf.stars)
     return idf
@@ -35,6 +37,7 @@ def get_idf(bdf):
 def get_udf(bdf):
     udf = pd.read_csv(args.contact_csv)
     user_cols = ["code", "oac_groupdesc"]
+    logging.info("Skipped contact columns: %s", set(udf.columns).difference(user_cols))
     udf = udf[udf.code.isin(bdf.code)][user_cols]
     return udf
 
@@ -85,8 +88,14 @@ def get_fdf(bdf):
         'tennis court',
         'travel cot',
         'vineyard',
-        'wheel chair facilities'
+        'wheel chair facilities',
+        'dropsided cot',
+        'games room',
+        'views',
+        'audio tour',
+        'river or estuary views',
     ]
+    logging.info("Skipped features: %s", set(fdf.columns).difference(feature_cols))
     fdf = fdf[["propcode", "year"] + feature_cols]
     # converting to binary
     fdf.enhanced = fdf.enhanced.apply(lambda x: 0 if pd.isnull(x) else 1)
@@ -137,7 +146,7 @@ def main():
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with bookings")
+    parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with transformed bookings")
     parser.add_argument("-c", required=True, dest="contact_csv", help=u"Path to a csv file with contacts")
     parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
     parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
