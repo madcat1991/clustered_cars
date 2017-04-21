@@ -1,5 +1,5 @@
 """
-The script clusters bookings
+The script clusters bookings using faiss package
 """
 
 import argparse

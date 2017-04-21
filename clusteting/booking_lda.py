@@ -1,3 +1,7 @@
+"""
+The script clusters bookings into LDA topics
+"""
+
 import argparse
 import logging
 import sys

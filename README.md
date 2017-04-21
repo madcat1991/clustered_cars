@@ -52,7 +52,7 @@ To run the basic offline evaluation check the `evaluation` folder.
 The script `booking_transform_and_split.py` transforms the cleaned
 booking data and splits it into the testing and training parts. To
 convert resulting training booking into the feature representation use
-the `feature_matrix/booking.py` script setting parameter `-b` to the csv
+the `feature_matrix/booking_*.py` script setting parameter `-b` to the csv
 file with the training bookings.
 
 ## Example
