@@ -55,6 +55,8 @@ def get_testing_matrix(df, uid_to_row, iid_to_col):
 
 def hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col):
     hit = 0
+
+    logging.info("# of testing instances: %s", testing_df.shape[0])
     for t in testing_df.itertuples():
         row_id = uid_to_row[t.code]
         col_id = iid_to_col[t.propcode]
@@ -69,32 +71,35 @@ def hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col):
 
 
 def store_data_for_eval(recs_m, testing_df, uid_to_row, iid_to_col):
-    with open(args.top_k_per_uid) as f:
-        top_k_per_uid = pickle.load(f)
+    with open(args.top_k_iid_per_uid, "rb") as f:
+        top_k_iid_per_uid = pickle.load(f)
 
     logging.info("Building recommendations using user-specific top-ks")
     ui_iid_recs = {}
     col_to_iid = {col_id: iid for iid, col_id in iid_to_col.items()}
+
+    hit = 0
     for t in testing_df.itertuples():
         key = (t.code, t.propcode)
 
         row_id = uid_to_row[t.code]
-        top_k = top_k_per_uid[key]
+        top_k = top_k_iid_per_uid[key]
 
         if row_id is not None:
             rec_row = recs_m[row_id]
-
             iid_recs = []
             for arg_id in np.argsort(rec_row.data)[-top_k:][::-1]:
                 iid = col_to_iid[rec_row.indices[arg_id]]
                 iid_recs.append(iid)
                 if t.propcode == iid:
+                    hit += 1
                     break
-
             ui_iid_recs[key] = iid_recs
 
+    logging.info("Hit ratio given top-ks: %.3f", hit / testing_df.shape[0])
+
     logging.info("Storing users' recommendations to: %s", args.ui_recs_path)
-    with open(args.ui_recs_path, "w") as f:
+    with open(args.ui_recs_path, "wb") as f:
         pickle.dump(ui_iid_recs, f)
 
 
@@ -119,7 +124,7 @@ def main():
     )
     logging.info("Hit ratio: %.3f", hit_ratio(recs_m, testing_df, uid_to_row, iid_to_col))
 
-    if args.top_k_per_uid:
+    if args.top_k_iid_per_uid:
         recs_m = get_topk_recs(
             tr_m,
             sim_m,
@@ -137,7 +142,7 @@ if __name__ == '__main__':
     parser.add_argument("--tsf", default='testing.csv', dest="testing_csv",
                         help="Testing data file name. Default: testing.csv")
 
-    parser.add_argument("--ek", dest="top_k_per_uid",
+    parser.add_argument("--ek", dest="top_k_iid_per_uid",
                         help="Path to the *.pkl containing the value of top-k per each user (from ug_bg_ibcf.py). "
                              "If specified, then the resulting recommendation per each user are stored to --er")
     parser.add_argument("--er", default="ui_iid_recs.pkl", dest="ui_recs_path",
