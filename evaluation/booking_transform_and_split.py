@@ -12,17 +12,11 @@ import numpy as np
 import pandas as pd
 from pandas.tools.tile import _bins_to_cuts
 
+from model.booking_transform import remove_unrepresentative_users, prepare_for_categorization, \
+    RESERVED_COLS, DATE_COLS, COLS_TO_DROP, COLS_TO_BIN
 from preprocessing.common import canonize_datetime, check_processed_columns
 from feature_matrix.functions import density_based_cutter, fix_outliers
 from misc.splitter import TimeWindowSplitter
-
-COLS_TO_BIN = ["adults", "children", "babies", "avg_spend_per_head", "n_booked_days", "drivetime"]
-RESERVED_COLS = ["code", "year", "propcode", "bookcode"]
-DATE_COLS = [u'bookdate', u'sdate', u"fdate"]
-COLS_TO_DROP = [
-    u'bookdate',  # no need
-    u'sourcedesc'  # too detailed
-]
 
 
 def actualize_testing_data(training_df, testing_df):
@@ -40,16 +34,6 @@ def actualize_testing_data(training_df, testing_df):
     testing_df = testing_df[mask]
     logging.info(u"Testing data, after cleaning: %s", testing_df.shape)
     return testing_df
-
-
-def _simple_cleaning(df):
-    df = df.drop(COLS_TO_DROP, axis=1)
-    df[u'n_booked_days'] = (df.fdate - df.sdate).apply(lambda x: x.days)
-    df = df.drop([u'sdate', u'fdate'], axis=1)
-    df.drivetime = np.round(df.drivetime / 3600)  # to hours
-    df.n_booked_days = df.n_booked_days.apply(lambda x: 1 if pd.isnull(x) or x < 1 else x)
-    df.avg_spend_per_head /= df.n_booked_days.astype(float)
-    return df
 
 
 def _clean_numeric_outliers(training_df, testing_df, max_p=99.9):
@@ -70,12 +54,20 @@ def _convert_to_cat(training_df, testing_df, col, bins):
 
 
 def _numeric_to_categorical(training_df, testing_df):
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "adults", 4)
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "children", 3)
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "babies", 3)
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "avg_spend_per_head", 5)
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "n_booked_days", 5)
-    training_df, testing_df = _convert_to_cat(training_df, testing_df, "drivetime", 4)
+    n_bins_per_col = {
+        "adults": 4,
+        "children": 3,
+        "babies": 3,
+        "avg_spend_per_head": 5,
+        "n_booked_days": 5,
+        "drivetime": 4,
+    }
+
+    assert not set(n_bins_per_col).difference(COLS_TO_BIN)
+
+    for col, n_bin in n_bins_per_col.items():
+        training_df, testing_df = _convert_to_cat(training_df, testing_df, col, n_bin)
+
     return training_df, testing_df
 
 
@@ -88,14 +80,22 @@ def _clean_categorical_outliers(training_df, testing_df, min_p=0.005, max_p=0.99
     return training_df, testing_df
 
 
-def actualize_training_data(training_df, min_bookings_per_user):
-    if min_bookings_per_user > 1:
-        logging.info(u"Training data, before cleaning: %s", training_df.shape)
-        bookings_per_user = training_df.code.value_counts()
-        good_user_ids = bookings_per_user[bookings_per_user >= min_bookings_per_user].index
-        training_df = training_df[training_df.code.isin(good_user_ids)]
-        logging.info(u"Training data, after cleaning: %s", training_df.shape)
-    return training_df
+def replace_numerical_to_categorical(training_df, testing_df):
+    logging.info(
+        u"Converting DFs to categorical columns, shapes: %s, %s",
+        training_df.shape, testing_df.shape
+    )
+
+    training_df, testing_df = _clean_numeric_outliers(training_df, testing_df)
+    training_df, testing_df = _numeric_to_categorical(training_df, testing_df)
+    training_df, testing_df = _clean_categorical_outliers(training_df, testing_df)
+
+    logging.info(
+        u"Converted DFs shape: %s, %s",
+        training_df.shape, testing_df.shape
+    )
+
+    return training_df, testing_df
 
 
 def main():
@@ -108,23 +108,13 @@ def main():
     tw_splitter = TimeWindowSplitter(args.data_percentage, args.test_percentage)
     training_rows, testing_rows = tw_splitter.split(df.bookdate, args.random_state)
     training_df, testing_df = df.loc[training_rows], df.loc[testing_rows]
-    training_df = actualize_training_data(training_df, args.min_bookings_per_user)
+    training_df = remove_unrepresentative_users(training_df, args.min_bookings_per_user)
     testing_df = actualize_testing_data(training_df, testing_df)
 
     # drop & transform cols
-    training_df = _simple_cleaning(training_df)
-    testing_df = _simple_cleaning(testing_df)
-
-    # fix outliers
-    training_df, testing_df = _clean_numeric_outliers(training_df, testing_df)
-
-    # convert numeric to categorical
-    training_df, testing_df = _numeric_to_categorical(training_df, testing_df)
-
-    # clean categorical outliers
-    training_df, testing_df = _clean_categorical_outliers(training_df, testing_df)
-    logging.info(u"Training shape: %s", training_df.shape)
-    logging.info(u"Testing shape: %s", testing_df.shape)
+    training_df = prepare_for_categorization(training_df)
+    testing_df = prepare_for_categorization(testing_df)
+    training_df, testing_df = replace_numerical_to_categorical(training_df, testing_df)
 
     # quality check
     training_columns = set(training_df.columns).union(COLS_TO_DROP + DATE_COLS).difference(['n_booked_days'])
