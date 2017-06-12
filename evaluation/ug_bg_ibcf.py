@@ -77,7 +77,7 @@ def store_data_for_eval(recs_m, testing_df, uid_to_ug, bg_iids):
 def main():
     logging.info(u"Getting clusters data")
     uid_to_ug = get_ug_data(args.user_cluster)
-    bid_to_bgs, bg_iids = get_bg_data(args.booking_cluster)
+    bid_to_bg, bg_iids = get_bg_data(args.booking_cluster)
 
     logging.info("Reading training data")
     training_df = pd.read_csv(args.training_csv)

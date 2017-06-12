@@ -24,11 +24,10 @@ def get_ug_data(ug_file_path):
 
 def get_bg_data(bg_file_path):
     """ The function creates two indices:
-
         * bid -> {bg_id1, bg_id2, ...}
         * bg_id -> {iid1, iid2, ...}
 
-    A booking can be assigned to several booking clusters
+    One booking is assigned to only one cluster
 
     :param bg_file_path: a path to the file containing information about booking clusters
     :return: bid -> {bg_id1, bg_id2, ...} and bg_id -> {iid1, iid2, ...} indices
@@ -45,7 +44,7 @@ def get_bg_data(bg_file_path):
         for line in f:
             if line.startswith("Bookings:"):
                 for bid in line.lstrip("Bookings:").split(","):
-                    bid_to_bgs.setdefault(bid.strip(), set()).add(cl_id)
+                    bid_to_bgs[bid.strip()] = cl_id
             elif line.startswith("Items:"):
                 bg_iids[cl_id] = {iid.strip() for iid in line.lstrip("Items:").split(",")}
             elif line.startswith("Cluster"):
