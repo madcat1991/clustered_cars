@@ -122,10 +122,21 @@ def main():
     df = pd.merge(bdf, udf, on=["code"], how='left')
     df = pd.merge(df, idf, on=["propcode", "year"], how='left')
     df = pd.merge(df, fdf, on=["propcode", "year"], how='left')
-    df = df.drop(["propcode", "year"], axis=1)
-
-    cols_to_binarize = df.columns[df.dtypes == 'object'].drop("code")
+    cols_to_binarize = df.columns[df.dtypes == 'object'].drop(["propcode", "code"])
     df = pd.get_dummies(df, columns=cols_to_binarize).fillna(0)
+
+    # dropping columns that don't present in the last year and in less than 50% of the years
+    bad_feature_cols = []
+    n_years = df.year.unique().size
+    max_year = df.year.unique().max()
+    for col in df.columns.drop(["code", "propcode", "year"]):
+        col_years = df[df[col] > 0].year.unique()
+        if max(col_years) != max_year or len(col_years) < n_years * 0.5:
+            bad_feature_cols.append(col)
+    logging.info("Features that don't present in every year: %s", bad_feature_cols)
+    df = df.drop(bad_feature_cols, axis=1)
+
+    df = df.drop(["propcode", "year"], axis=1)
     df["booking_cnt"] = 1  # for future purposes
     df = df.groupby("code").sum().reset_index()
     logging.info("Shape before cleaning: %s", df.shape)
@@ -150,8 +161,8 @@ if __name__ == '__main__':
     parser.add_argument("-c", required=True, dest="contact_csv", help=u"Path to a csv file with contacts")
     parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
     parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
-    parser.add_argument('-o', default="users.csv", dest="output_csv",
-                        help=u'Path to an output file. Default: user_features.csv')
+    parser.add_argument('-o', default="user.csv", dest="output_csv",
+                        help=u'Path to an output file. Default: user.csv')
     parser.add_argument('-m', default=2, type=int, dest="min_users_per_feature",
                         help=u'Min users per feature. Default: 2')
     parser.add_argument("--log-level", default='INFO', dest="log_level",

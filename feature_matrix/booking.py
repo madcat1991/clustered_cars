@@ -10,6 +10,9 @@ import pandas as pd
 from feature_matrix.functions import prepare_num_column
 
 
+RESERVED_COLS = ["bookcode", "propcode", "year"]
+
+
 def get_bdf():
     bdf = pd.read_csv(args.booking_csv)
     booking_cols = [
@@ -119,20 +122,31 @@ def main():
     # preparing item vectors
     df = pd.merge(bdf, idf, on=["propcode", "year"], how='left')
     df = pd.merge(df, fdf, on=["propcode", "year"], how='left')
-    df = df.drop(["year"], axis=1)
 
-    cols_to_binarize = df.columns[df.dtypes == 'object'].drop(["bookcode", "propcode"])
+    cols_to_binarize = df.columns[df.dtypes == 'object'].drop(RESERVED_COLS, errors='ignore')
     df = pd.get_dummies(df, columns=cols_to_binarize).fillna(0)
     logging.info("Shape before cleaning: %s", df.shape)
 
     # dropping columns that can't change anything
     bad_feature_cols = []
-    for feature_col in df.columns.drop(["bookcode", "propcode"]):
+    for feature_col in df.columns.drop(RESERVED_COLS):
         items_per_feature = df.propcode[df[feature_col] == 1].unique().size
         if items_per_feature < args.min_items_per_feature:
             bad_feature_cols.append(feature_col)
 
     logging.info("Features with less than %s items: %s", args.min_items_per_feature, bad_feature_cols)
+    df = df.drop(bad_feature_cols, axis=1)
+
+    # dropping columns that don't present in the last year and in less than 50% of the years
+    bad_feature_cols = []
+    n_years = df.year.unique().size
+    max_year = df.year.unique().max()
+    for col in df.columns.drop(RESERVED_COLS):
+        col_years = df[df[col] > 0].year.unique()
+        if max(col_years) != max_year or len(col_years) < n_years * 0.5:
+            bad_feature_cols.append(col)
+
+    logging.info("Features that don't present in every year: %s", bad_feature_cols)
     df = df.drop(bad_feature_cols, axis=1)
 
     logging.info(u"Dumping prepared booking-feature matrix: %s", df.shape)
@@ -144,8 +158,8 @@ if __name__ == '__main__':
     parser.add_argument("-b", required=True, dest="booking_csv", help=u"Path to a csv file with transformed bookings")
     parser.add_argument("-p", required=True, dest="property_csv", help=u"Path to a csv file with properties")
     parser.add_argument("-f", required=True, dest="feature_csv", help=u"Path to a csv file with features")
-    parser.add_argument('-o', default="bookings.csv", dest="output_csv",
-                        help=u'Path to an output file. Default: booking_features.csv')
+    parser.add_argument('-o', default="booking.csv", dest="output_csv",
+                        help=u'Path to an output file. Default: booking.csv')
     parser.add_argument('-m', default=10, type=int, dest="min_items_per_feature",
                         help=u'Min items per feature. Default: 10')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
