@@ -10,39 +10,13 @@ from collections import Counter
 
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
 from sklearn.preprocessing import binarize
 
 from ibcf.matrix_functions import get_sparse_matrix_info
 from ibcf.recs import get_topk_recs
 from ibcf.similarity import get_similarity_matrix
 from misc.common import get_ug_data, get_bg_data
-
-
-def get_training_matrix(df, uid_to_ug, bid_to_bgs):
-    uids_per_ug = pd.Series(list(uid_to_ug.values())).value_counts()
-    u_mult = 1.0 / uids_per_ug.sort_index().values
-
-    bids_per_ug = pd.Series(
-        [bg_id for bg_ids in bid_to_bgs.values() for bg_id in bg_ids]
-    ).value_counts()
-    b_mult = 1.0 / bids_per_ug.sort_index().values
-
-    cols = []
-    rows = []
-    for t in df.itertuples():
-        ug_id = uid_to_ug.get(t.code)
-        bg_ids = bid_to_bgs.get(t.bookcode, {})
-
-        if ug_id is not None:
-            for bg_id in bg_ids:
-                rows.append(ug_id)
-                cols.append(bg_id)
-
-    m = csr_matrix((np.ones(len(rows)), (rows, cols)), shape=(len(u_mult), len(b_mult)))
-    m = csr_matrix(m.multiply(u_mult.reshape(u_mult.shape[0], 1)))
-    m = csr_matrix(m.multiply(b_mult))
-    return m
+from model.build_recs_matrix import get_matrix
 
 
 def hit_ratio(recs_m, testing_df, uid_to_ug, bg_iids):
@@ -107,7 +81,7 @@ def main():
 
     logging.info("Reading training data")
     training_df = pd.read_csv(args.training_csv)
-    tr_m = get_training_matrix(training_df, uid_to_ug, bid_to_bgs)
+    tr_m = get_matrix(training_df, uid_to_ug, bid_to_bg)
     logging.info(u"Training matrix: %s", get_sparse_matrix_info(tr_m))
 
     logging.info("Reading testing data")
