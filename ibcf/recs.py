@@ -5,7 +5,7 @@ Methods for item-based top-k CF recommendations
 from ibcf.matrix_functions import get_topk
 
 
-def get_topk_recs(ui_vector, sim_matrix, e_matrix, top=None):
+def get_topk_recs(ui_vector, sim_matrix, e_matrix=None, top=None):
     """
     Getting top recommendations for user with some history
 
