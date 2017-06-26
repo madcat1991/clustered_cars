@@ -50,3 +50,27 @@ def get_bg_data(bg_file_path):
             elif line.startswith("Cluster"):
                 cl_id += 1
     return bid_to_bgs, bg_iids
+
+
+def get_group_features(file_path):
+    """ The function creates a group-feature dictionary
+
+    :param file_path: a path to the file containing information about clusters
+    :return: dict {ug_id_1: {feature_id_1: score_1, ...}, ...}
+    """
+    group_features = {}
+
+    with open(file_path) as f:
+        # skipping
+        while not next(f).startswith("Cluster"):
+            pass
+
+        cl_id = 0
+        for line in f:
+            if line.startswith("->"):
+                feature, score = list(map(lambda x: x.strip(), line.lstrip("->").split(": ")))
+                score = float(score)
+                group_features[cl_id].setdefault(feature, score)
+            elif line.startswith("Cluster"):
+                cl_id += 1
+    return group_features
