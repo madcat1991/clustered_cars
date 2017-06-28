@@ -16,17 +16,21 @@ class UserDataProvider(object):
         self._prepare_uid_features(udf)
 
     def _prepare_uid_features(self, udf):
+        udf = udf.set_index("code")
         booking_cnt = udf.booking_cnt
-        udf = udf.drop(["booking_cnt"], axis=1).set_index("code")
-        udf = udf.apply(lambda x: x / booking_cnt)
-        udf[udf < FEATURE_THRESHOLD] = 0
+        udf = udf.drop(["booking_cnt"], axis=1).apply(lambda x: x / booking_cnt)
         self._uid_features = udf
 
     def get_cluster_id(self, uid):
         return self._uid_to_ug.get(uid)
 
     def get_uid_features(self, uid):
-        return self._uid_features.loc[uid] if uid in self._uid_features else {}
+        uid_features = {}
+        if uid in self._uid_features.index:
+            for feature, score in self._uid_features.loc[uid].items():
+                if score > FEATURE_THRESHOLD:
+                    uid_features[feature] = score
+        return uid_features
 
     def get_cluster_features(self, cluster_id):
         return self._ug_features.get(cluster_id, {})
@@ -57,7 +61,6 @@ class BookingDataProvider(object):
         cols = ["bookcode", "propcode", "year"]
         data = bdf.drop(cols, axis=1)
         data = data.groupby("code").mean()
-        data[data < FEATURE_THRESHOLD] = 0
         self._uid_booking_summaries = data
 
     def get_iids_for_uid(self, uid):
@@ -70,7 +73,12 @@ class BookingDataProvider(object):
         return self._bg_features.get(cluster_id, {})
 
     def get_uid_booking_summary(self, uid):
-        return self._uid_booking_summaries.loc[uid] if uid in self._uid_booking_summaries else {}
+        summary = {}
+        if uid in self._uid_booking_summaries.index:
+            for feature, score in self._uid_booking_summaries.loc[uid].items():
+                if score > FEATURE_THRESHOLD:
+                    summary[feature] = score
+        return summary
 
     @staticmethod
     def load(config):
