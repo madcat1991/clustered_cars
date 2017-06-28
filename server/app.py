@@ -2,11 +2,12 @@ import json
 import logging
 import logging.config
 
+import numpy as np
 from flask import Flask, jsonify
 
 from server.data_provider import UserDataProvider, BookingDataProvider, ItemDataProvider
 from server.exceptions import BaseApiException
-from server.functions import get_abs_path
+from server.functions import get_abs_path, clean_json_dict_keys
 from server.recommender import ClusterRecommender, PopItemRecommender
 
 logger = logging.getLogger(__name__)
@@ -21,6 +22,10 @@ class ApiAppJsonEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, set):
             return list(obj)
+        if isinstance(obj, np.int32):
+            return int(obj)
+        if isinstance(obj, np.float64):
+            return float(obj)
         return json.JSONEncoder.default(self, obj)
 
 
@@ -75,6 +80,7 @@ class APIApp(Flask):
         if isinstance(rv, self.response_class):
             return rv
         if isinstance(rv, (dict, list)):
+            rv = clean_json_dict_keys(rv)
             rv = json.dumps(rv, cls=ApiAppJsonEncoder)
         elif isinstance(rv, bool):
             rv = "true" if rv else "false"

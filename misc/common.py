@@ -70,7 +70,8 @@ def get_group_features(file_path):
             if line.startswith("->"):
                 feature, score = list(map(lambda x: x.strip(), line.lstrip("->").split(": ")))
                 score = float(score)
-                group_features[cl_id].setdefault(feature, score)
+                group_features.setdefault(cl_id, {})
+                group_features[cl_id][feature] = score
             elif line.startswith("Cluster"):
                 cl_id += 1
     return group_features

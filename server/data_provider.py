@@ -47,7 +47,7 @@ class BookingDataProvider(object):
         self._prepare_uid_booking_summaries(bdf)
 
     def _prepare_obs_per_iid(self, bdf):
-        self._obs_per_iid = bdf.groupby('propcode').count()
+        self._obs_per_iid = bdf.groupby('propcode').bookcode.nunique()
 
     def _prepare_booking_iid_uid_part(self, bdf):
         cols = ["bookcode", "propcode", "code"]
@@ -55,7 +55,7 @@ class BookingDataProvider(object):
 
     def _prepare_uid_booking_summaries(self, bdf):
         cols = ["bookcode", "propcode", "year"]
-        data = bdf.drop([cols], axis=1)
+        data = bdf.drop(cols, axis=1)
         data = data.groupby("code").mean()
         data[data < FEATURE_THRESHOLD] = 0
         self._uid_booking_summaries = data
@@ -99,8 +99,8 @@ class ItemDataProvider(object):
 
         self.bg_iid_m = csr_matrix((np.ones(len(rows)), (rows, cols)))
 
-    def get_mask_for_iids(self, iids, scores=None):
-        if scores:
+    def get_score_per_iid_row(self, iids, scores=None):
+        if scores is not None:
             assert len(iids) == len(scores)
 
             cols = []
@@ -114,7 +114,7 @@ class ItemDataProvider(object):
             data = np.ones(len(cols))
         return csr_matrix((data, (np.zeros(len(cols)), cols)), shape=(1, len(self.iid_to_col)))
 
-    def get_mask_for_bgs(self, iid_mask, min_iid_per_bg):
+    def get_iid_per_bg_row(self, iid_mask, min_iid_per_bg):
         iid_per_bg = self.bg_iid_m.multiply(iid_mask).sum(axis=1).A1
         iid_per_bg[iid_per_bg < min_iid_per_bg] = 0
         return csr_matrix(iid_per_bg, shape=(1, iid_per_bg.size))
