@@ -10,9 +10,18 @@ import numpy as np
 import pandas as pd
 
 from preprocessing.common import canonize_datetime, check_processed_columns
-from feature_matrix.functions import density_based_cutter, fix_outliers
+from feature_matrix.functions import replace_numerical_to_categorical
 
-COLS_TO_BIN = ["adults", "children", "babies", "avg_spend_per_head", "n_booked_days", "drivetime"]
+# cols: number of bins
+BINNING_COLS = {
+    'adults': 3,
+    'children': 3,
+    'babies': 2,
+    'avg_spend_per_head': 4,
+    'drivetime': 3,
+    'n_booked_days': 3
+}
+
 RESERVED_COLS = ["code", "year", "propcode", "bookcode"]
 DATE_COLS = [u'bookdate', u'sdate', u"fdate"]
 COLS_TO_DROP = [
@@ -38,45 +47,6 @@ def actualize_testing_data(training_df, testing_df):
     return testing_df
 
 
-def _clean_numeric_outliers(bdf, max_p=99.9):
-    for col in COLS_TO_BIN:
-        max_value = np.percentile(bdf[col], max_p)
-        bdf[col] = fix_outliers(bdf[col], 0, max_value)
-    return bdf
-
-
-def _convert_to_cat(bdf, col, bins):
-    s, bin_edges = density_based_cutter(bdf[col], bins)
-    bdf[col] = s.astype('object')
-    return bdf
-
-
-def _numeric_to_categorical(bdf):
-    n_bins_per_col = {
-        "adults": 4,
-        "children": 3,
-        "babies": 3,
-        "avg_spend_per_head": 5,
-        "n_booked_days": 5,
-        "drivetime": 4,
-    }
-
-    assert not set(n_bins_per_col).difference(COLS_TO_BIN)
-
-    for col, n_bin in n_bins_per_col.items():
-        bdf = _convert_to_cat(bdf, col, n_bin)
-
-    return bdf
-
-
-def _clean_categorical_outliers(bdf, min_p=0.005, max_p=0.995):
-    for col in bdf.columns[bdf.dtypes == 'object'].drop(RESERVED_COLS, 'ignore'):
-        val_count = bdf[col].dropna().value_counts() / float(bdf.shape[0])
-        values_to_remove = val_count[(val_count < min_p) | (val_count > max_p)].index
-        bdf[col] = bdf[col].replace(values_to_remove, None)
-    return bdf
-
-
 def remove_unrepresentative_users(bdf, min_bookings_per_user):
     if min_bookings_per_user > 1:
         logging.info("DF, before cleaning: %s", bdf.shape)
@@ -98,15 +68,6 @@ def prepare_for_categorization(bdf):
     return bdf
 
 
-def replace_numerical_to_categorical(bdf):
-    logging.info(u"Converting DF to categorical columns, shape: %s", bdf.shape)
-    bdf = _clean_numeric_outliers(bdf)
-    bdf = _numeric_to_categorical(bdf)
-    bdf = _clean_categorical_outliers(bdf)
-    logging.info(u"Converted DF shape: %s", bdf.shape)
-    return bdf
-
-
 def main():
     logging.info(u"Start")
     bdf = pd.read_csv(args.data_csv_path)
@@ -116,7 +77,7 @@ def main():
     # categorizing
     bdf = remove_unrepresentative_users(bdf, args.min_bookings_per_user)
     bdf = prepare_for_categorization(bdf)
-    bdf = replace_numerical_to_categorical(bdf)
+    bdf = replace_numerical_to_categorical(bdf, BINNING_COLS)
 
     # quality check
     columns = set(bdf.columns).union(COLS_TO_DROP + DATE_COLS).difference(['n_booked_days'])

@@ -7,7 +7,11 @@ import sys
 
 import pandas as pd
 
-from feature_matrix.functions import prepare_num_column
+from feature_matrix.functions import replace_numerical_to_categorical
+
+BINNING_COLS = {
+    'stars': 4,
+}
 
 
 def get_bdf():
@@ -30,7 +34,7 @@ def get_idf(bdf):
     item_cols = ["propcode", "year", "stars"]
     logging.info("Skipped property columns: %s", set(idf.columns).difference(item_cols))
     idf = idf[item_cols]
-    idf.stars = prepare_num_column(idf.stars)
+    idf = replace_numerical_to_categorical(idf, BINNING_COLS)
     return idf
 
 

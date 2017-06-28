@@ -1,53 +1,54 @@
+import logging
 import numpy as np
 import pandas as pd
-from pandas.tools.tile import _bins_to_cuts
+from sklearn.cluster import KMeans
 
 
-def fix_outliers(s, min_v, max_v):
-    s[pd.notnull(s) & (s < min_v)] = min_v
-    s[pd.notnull(s) & (s > max_v)] = max_v
-    return s
+def fix_outliers(col_data, min_val=None, max_val=None, return_min_max=False):
+    non_na_data = col_data.dropna()
+
+    # removing outliers
+    if min_val is None:
+        min_val = np.percentile(non_na_data, 1)
+    if max_val is None:
+        max_val = np.percentile(non_na_data, 99)
+
+    col_data[pd.notnull(col_data) & (col_data < min_val)] = min_val
+    col_data[pd.notnull(col_data) & (col_data > max_val)] = max_val
+
+    if return_min_max:
+        return col_data, min_val, max_val
+    return col_data
 
 
-def density_based_cutter(s, bins):
-    min_value = max(1, int(s.min()))
-    max_value = int(s.max())
+def get_bins_for_num_column(col_data, n_bins):
+    x = col_data.dropna().values
+    km = KMeans(n_clusters=n_bins).fit(x.reshape(-1, 1))
 
-    bin_edges = list(range(min_value, max_value + 1))
-    hist = [0] * (len(bin_edges))
+    bins = [min(x)]
+    is_bad_edge = False
+    for cl_id in np.argsort(km.cluster_centers_.reshape(-1)):
+        if is_bad_edge:
+            prev_edge = (bins[-1] + min(x[km.labels_ == cl_id])) / 2
+            bins.append(prev_edge)
 
-    for value in s.dropna():
-        hist[int(value) - min_value] += 1
+        edge = max(x[km.labels_ == cl_id])
+        is_bad_edge = bins[-1] == edge
 
-    while len(bin_edges) - 1 > bins:
-        target_id = np.argmin(hist)
-
-        if target_id != 0 and target_id != len(hist) - 1:
-            if hist[target_id - 1] < hist[target_id + 1]:
-                hist[target_id - 1] += hist[target_id]
-                bin_edges.pop(target_id)
-                hist.pop(target_id)
-            else:
-                if target_id + 1 != len(hist) - 1:
-                    hist[target_id] += hist[target_id + 1]
-                    bin_edges.pop(target_id + 1)
-                    hist.pop(target_id + 1)
-                else:
-                    hist[target_id] += hist[target_id - 1]
-                    bin_edges.pop(target_id - 1)
-                    hist.pop(target_id - 1)
-        elif target_id == 0:
-            hist[target_id] += hist[target_id + 1]
-            bin_edges.pop(target_id + 1)
-            hist.pop(target_id + 1)
-        else:
-            hist[target_id] += hist[target_id - 1]
-            bin_edges.pop(target_id - 1)
-            hist.pop(target_id - 1)
-    return _bins_to_cuts(s, np.array(bin_edges), include_lowest=True, retbins=True)
+        if not is_bad_edge:
+            bins.append(edge)
+    return bins
 
 
-def prepare_num_column(s, max_p=99.9, bins=3):
-    max_value = np.percentile(s, max_p)
-    s = fix_outliers(s, 0, max_value)
-    return density_based_cutter(s, bins)[0]
+def replace_numerical_to_categorical(df, binning_cols, min_p=0.005, max_p=0.995):
+    logging.info(u"Binning DF numerical columns to categorical: %s", binning_cols)
+    for col, n_bins in binning_cols.items():
+        logging.info("Binning columns '%s'", col)
+        col_data = fix_outliers(df[col].copy())
+        bins = get_bins_for_num_column(col_data, n_bins)
+        col_data = pd.cut(col_data, bins, include_lowest=True).astype('object')
+
+        val_count = col_data.dropna().value_counts() / float(col_data.shape[0])
+        values_to_remove = val_count[(val_count < min_p) | (val_count > max_p)].index
+        df[col] = col_data.replace(values_to_remove, None)
+    return df

@@ -8,14 +8,12 @@ import argparse
 import logging
 import sys
 
-import numpy as np
 import pandas as pd
-from pandas.tools.tile import _bins_to_cuts
 
 from model.booking_transform import remove_unrepresentative_users, prepare_for_categorization, \
-    RESERVED_COLS, DATE_COLS, COLS_TO_DROP, COLS_TO_BIN
+    DATE_COLS, COLS_TO_DROP, BINNING_COLS
 from preprocessing.common import canonize_datetime, check_processed_columns
-from feature_matrix.functions import density_based_cutter, fix_outliers
+from feature_matrix.functions import fix_outliers, get_bins_for_num_column
 from misc.splitter import TimeWindowSplitter
 
 
@@ -36,65 +34,22 @@ def actualize_testing_data(training_df, testing_df):
     return testing_df
 
 
-def _clean_numeric_outliers(training_df, testing_df, max_p=99.9):
-    for col in COLS_TO_BIN:
-        max_value = np.percentile(training_df[col], max_p)
-        training_df[col] = fix_outliers(training_df[col], 0, max_value)
-        testing_df[col] = fix_outliers(testing_df[col], 0, max_value)
-    return training_df, testing_df
+def replace_numerical_to_categorical_train_and_test(training_df, testing_df, min_p=0.005, max_p=0.995):
+    logging.info(u"Binning DF numerical columns to categorical: %s", BINNING_COLS)
+    for col, n_bins in BINNING_COLS.items():
+        logging.info("Binning columns '%s'", col)
+        col_data_train, min_val, max_val = fix_outliers(training_df[col].copy(), return_min_max=True)
+        col_data_test = fix_outliers(testing_df[col].copy(), min_val=min_val, max_val=max_val)
 
+        bins = get_bins_for_num_column(col_data_train, n_bins)
+        col_data_train = pd.cut(col_data_train, bins, include_lowest=True).astype('object')
+        col_data_test = pd.cut(col_data_test, bins, include_lowest=True).astype('object')
 
-def _convert_to_cat(training_df, testing_df, col, bins):
-    s, bin_edges = density_based_cutter(training_df[col], bins)
-    training_df[col] = s
-    testing_df[col] = _bins_to_cuts(testing_df[col], bin_edges, include_lowest=True)
-    training_df[col] = training_df[col].astype('object')
-    testing_df[col] = testing_df[col].astype('object')
-    return training_df, testing_df
-
-
-def _numeric_to_categorical(training_df, testing_df):
-    n_bins_per_col = {
-        "adults": 4,
-        "children": 3,
-        "babies": 3,
-        "avg_spend_per_head": 5,
-        "n_booked_days": 5,
-        "drivetime": 4,
-    }
-
-    assert not set(n_bins_per_col).difference(COLS_TO_BIN)
-
-    for col, n_bin in n_bins_per_col.items():
-        training_df, testing_df = _convert_to_cat(training_df, testing_df, col, n_bin)
-
-    return training_df, testing_df
-
-
-def _clean_categorical_outliers(training_df, testing_df, min_p=0.005, max_p=0.995):
-    for col in training_df.columns[training_df.dtypes == 'object'].drop(RESERVED_COLS, 'ignore'):
-        val_count = training_df[col].dropna().value_counts() / float(training_df.shape[0])
+        val_count = col_data_train.dropna().value_counts() / float(col_data_train.shape[0])
         values_to_remove = val_count[(val_count < min_p) | (val_count > max_p)].index
-        training_df[col] = training_df[col].replace(values_to_remove, None)
-        testing_df[col] = testing_df[col].replace(values_to_remove, None)
-    return training_df, testing_df
 
-
-def replace_numerical_to_categorical(training_df, testing_df):
-    logging.info(
-        u"Converting DFs to categorical columns, shapes: %s, %s",
-        training_df.shape, testing_df.shape
-    )
-
-    training_df, testing_df = _clean_numeric_outliers(training_df, testing_df)
-    training_df, testing_df = _numeric_to_categorical(training_df, testing_df)
-    training_df, testing_df = _clean_categorical_outliers(training_df, testing_df)
-
-    logging.info(
-        u"Converted DFs shape: %s, %s",
-        training_df.shape, testing_df.shape
-    )
-
+        training_df[col] = col_data_train.replace(values_to_remove, None)
+        testing_df[col] = col_data_test.replace(values_to_remove, None)
     return training_df, testing_df
 
 
@@ -114,7 +69,7 @@ def main():
     # drop & transform cols
     training_df = prepare_for_categorization(training_df)
     testing_df = prepare_for_categorization(testing_df)
-    training_df, testing_df = replace_numerical_to_categorical(training_df, testing_df)
+    training_df, testing_df = replace_numerical_to_categorical_train_and_test(training_df, testing_df)
 
     # quality check
     training_columns = set(training_df.columns).union(COLS_TO_DROP + DATE_COLS).difference(['n_booked_days'])

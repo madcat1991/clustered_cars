@@ -7,16 +7,19 @@ import sys
 
 import pandas as pd
 
-from feature_matrix.functions import prepare_num_column
+from model.booking_transform import replace_numerical_to_categorical
 
-
-RESERVED_COLS = ["bookcode", "propcode", "year"]
+RESERVED_COLS = ["code", "bookcode", "propcode", "year"]
+BINNING_COLS = {
+    'stars': 4,
+    'sleeps': 5,
+}
 
 
 def get_bdf():
     bdf = pd.read_csv(args.booking_csv)
     booking_cols = [
-        'bookcode', 'year', 'propcode',
+        'code', 'bookcode', 'year', 'propcode',
         'breakpoint', 'adults', 'children', 'babies',
         'avg_spend_per_head', 'pets'
     ]
@@ -33,8 +36,7 @@ def get_idf(bdf):
     item_cols = ['propcode', 'year', 'region', 'stars', 'sleeps', 'shortbreakok']
     logging.info("Skipped property columns: %s", set(idf.columns).difference(item_cols))
     idf = idf[item_cols]
-    idf.stars = prepare_num_column(idf.stars)
-    idf.sleeps = prepare_num_column(idf.sleeps, bins=5)
+    idf = replace_numerical_to_categorical(idf, BINNING_COLS)
     return idf
 
 
