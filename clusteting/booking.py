@@ -11,7 +11,7 @@ import pandas as pd
 
 from clusteting.method import smart_kmeans_clustering
 
-RESERVED_COLS = ["bookcode", "propcode", "year"]
+RESERVED_COLS = ["code", "bookcode", "propcode", "year"]
 
 
 def main():
