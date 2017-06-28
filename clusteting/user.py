@@ -13,6 +13,7 @@ from sklearn.feature_extraction.text import TfidfTransformer
 from clusteting.method import smart_kmeans_clustering
 
 RESERVED_COLS = ["code", "booking_cnt"]
+FEATURE_THRESHOLD = 0.6
 
 
 def main():
@@ -46,7 +47,7 @@ def main():
             f.write("Cluster #%s [%s]\n" % (cl_id, cluster.shape[0]))
             f.write("Explanation:\n")
 
-            for k, v in explanation[explanation > 0.7].iteritems():
+            for k, v in explanation[explanation > FEATURE_THRESHOLD].iteritems():
                 f.write("-> %s: %.3f\n" % (k, v))
 
             f.write("Users: %s\n" % ", ".join(cluster.code.tolist()))

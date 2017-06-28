@@ -12,6 +12,7 @@ import pandas as pd
 from clusteting.method import smart_kmeans_clustering
 
 RESERVED_COLS = ["code", "bookcode", "propcode", "year"]
+FEATURE_THRESHOLD = 0.6
 
 
 def main():
@@ -52,7 +53,7 @@ def main():
             )
             f.write("Explanation:\n")
 
-            for k, v in explanation[explanation > 0.7].iteritems():
+            for k, v in explanation[explanation > FEATURE_THRESHOLD].iteritems():
                 f.write("-> %s: %.3f\n" % (k, v))
 
             f.write("Bookings: %s\n" % ", ".join(cluster.bookcode.tolist()))
