@@ -8,7 +8,7 @@ import sys
 
 import pandas as pd
 
-from preprocessing.common import raw_data_to_df, check_processed_columns
+from preprocessing.common import raw_data_to_df, check_processed_columns, check_data
 
 INTERESTING_COLS = [u'propcode', u'year', u'desc1', u'desc2']
 
@@ -132,6 +132,7 @@ def process_feature_df(df):
 
 
 def main():
+    check_data(args.input_csv, args.input_csv_delimiter)
     df = raw_data_to_df(args.input_csv, delimiter=args.input_csv_delimiter)
     logging.info(u"Data's initial shape: %s", df.shape)
 

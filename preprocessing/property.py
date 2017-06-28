@@ -8,7 +8,7 @@ import sys
 
 import pandas as pd
 
-from preprocessing.common import raw_data_to_df, check_processed_columns
+from preprocessing.common import raw_data_to_df, check_processed_columns, check_data
 
 COLS_TO_DROP = [
     u'active', u'callflag', u'placeid',  # no need
@@ -31,6 +31,7 @@ NOT_NA_COLS = [u'propcode', u'propid', u'year']
 
 
 def main():
+    check_data(args.input_csv, args.input_csv_delimiter)
     df = raw_data_to_df(args.input_csv, args.input_csv_delimiter)
     original_columns = df.columns
     logging.info(u"DF initial shape: %s", df.shape)
@@ -40,7 +41,8 @@ def main():
     df = df.dropna(subset=NOT_NA_COLS)
     logging.info(u"Shape after cleaning: %s", df.shape)
 
-    df[BOOL_COLS] = df[BOOL_COLS].apply(lambda x: x.str.contains('true', case=False, na=False)).astype(int)
+    # df[BOOL_COLS] = df[BOOL_COLS].apply(lambda x: x.str.contains('true', case=False, na=False)).astype(int)
+    df[BOOL_COLS] = df[BOOL_COLS].astype(int)
     df[INT_COLS] = df[INT_COLS].apply(lambda x: pd.to_numeric(x))
     df.stars = pd.to_numeric(df.stars, errors='coerce')
 

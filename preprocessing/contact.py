@@ -6,7 +6,7 @@ import argparse
 import logging
 import sys
 
-from preprocessing.common import raw_data_to_df, check_processed_columns
+from preprocessing.common import raw_data_to_df, check_processed_columns, check_data
 
 COLS_TO_DROP = [
     u'createdate', u'last_brochure_date',  # no need
@@ -25,6 +25,7 @@ NOT_NA_COLS = [u"code"]
 
 
 def main():
+    check_data(args.input_csv, args.input_csv_delimiter)
     df = raw_data_to_df(args.input_csv, args.input_csv_delimiter)
     original_columns = df.columns
     logging.info(u"DF initial shape: %s", df.shape)

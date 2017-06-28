@@ -8,7 +8,7 @@ import sys
 
 import pandas as pd
 
-from preprocessing.common import canonize_datetime, raw_data_to_df, check_processed_columns
+from preprocessing.common import canonize_datetime, raw_data_to_df, check_processed_columns, check_data
 
 OLD_BREAKPOINT_MATCHER = {
     2001: [
@@ -171,6 +171,7 @@ def fill_missed_breakpoints(df):
 
 
 def main():
+    check_data(args.input_csv, args.input_csv_delimiter)
     df = raw_data_to_df(args.input_csv, args.input_csv_delimiter)
     original_columns = df.columns
     logging.info(u"DF initial shape: %s", df.shape)
