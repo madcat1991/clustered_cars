@@ -11,7 +11,7 @@ import pandas as pd
 from preprocessing.common import raw_data_to_df, check_processed_columns, check_data
 
 COLS_TO_DROP = [
-    u'active', u'callflag', u'placeid',  # no need
+    u'callflag', u'placeid',  # no need
     u'createdate', u'changeday',  u'bandno', # no need
     u'pageno',  u'gridx', u'gridy',  # no need
     u'commission', u'latitude', u'longitude',  # no need
@@ -19,15 +19,15 @@ COLS_TO_DROP = [
 ]
 
 INT_COLS = [
-    u'bathrooms', u'bedrooms', u'bunks', u'doubles',
-    u'familyrooms', u'sleeps', u'twin',
+    u'active', u'bathrooms', u'bedrooms', u'bunks',
+    u'doubles', u'familyrooms', u'sleeps', u'twin',
 ]
 
 BOOL_COLS = [
     u'shortbreakok'
 ]
 
-NOT_NA_COLS = [u'propcode', u'propid', u'year']
+NOT_NA_COLS = [u'propcode', u'propid', u'year', u'active']
 
 
 def main():
