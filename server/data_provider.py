@@ -105,6 +105,7 @@ class ItemDataProvider(object):
             for iid in iids:
                 cols.append(self.iid_to_col.setdefault(iid, len(self.iid_to_col)))
 
+        self.col_to_iid = {col: iid for iid, col in self.iid_to_col.items()}
         self.bg_iid_m = csr_matrix((np.ones(len(rows)), (rows, cols)))
 
     def get_score_per_iid_row(self, iids, scores=None):
@@ -133,20 +134,23 @@ class ItemDataProvider(object):
     def prepare_bg_recs(self, bg_recs, iid_recs, top_clusters=None, top_items=None):
         _bg_iid_m = self.bg_iid_m.multiply(iid_recs)
 
-        recs = {}
+        recs = []
         for b_arg_id in np.argsort(bg_recs.data)[::-1][:top_clusters]:
             bg_id, bg_score = bg_recs.indices[b_arg_id], bg_recs.data[b_arg_id]
             _iid_recs = _bg_iid_m[bg_id]
 
-            i_recs = {}
+            i_recs = []
             for i_arg_id in np.argsort(_iid_recs.data)[::-1][:top_items]:
-                iid, iid_score = _iid_recs.indices[i_arg_id], _iid_recs.data[i_arg_id]
-                i_recs[iid] = iid_score
+                i_recs.append({
+                    "propcode": self.col_to_iid[_iid_recs.indices[i_arg_id]],
+                    "score": _iid_recs.data[i_arg_id]
+                })
 
-            recs[bg_id] = {
+            recs.append({
+                "bg_id": bg_id,
                 "score": bg_score,
                 "properties": i_recs
-            }
+            })
         return recs
 
     @staticmethod
