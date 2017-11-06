@@ -8,6 +8,39 @@ from misc.common import get_ug_data, get_bg_data, get_group_features
 FEATURE_THRESHOLD = 0.5
 
 
+class ObjFeatureSparseData(object):
+    def __init__(self, m, obj_to_row, feature_to_col):
+        self.m = m
+
+        self.obj_to_row = obj_to_row
+        self.feature_to_col = feature_to_col
+
+        self.row_to_obj = {row_id: obj_id for obj_id, row_id in obj_to_row.items()}
+        self.col_to_feature = {col_id: fid for fid, col_id in feature_to_col.items()}
+
+    @property
+    def n_objs(self):
+        return len(self.obj_to_row)
+
+    @property
+    def n_features(self):
+        return len(self.feature_to_col)
+
+    def info(self):
+        return {
+            "nnz": self.m.nnz,
+            "density": self.m.nnz / (self.m.shape[0] * self.m.shape[1]),
+            "shape": self.m.shape
+        }
+
+    def get_obj_vector(self, obj_id):
+        return self.m[self.obj_to_row[obj_id]]
+
+    def get_objs_matrix(self, objs_ids):
+        row_ids = [self.obj_to_row[obj_id] for obj_id in objs_ids]
+        return self.m[row_ids]
+
+
 class UserDataProvider(object):
     def __init__(self, udf, uid_to_ug, ug_features):
         # TODO probably later *df-s should be removed from constructors
@@ -46,9 +79,13 @@ class UserDataProvider(object):
 class BookingDataProvider(object):
     def __init__(self, bdf, bg_features):
         self._bg_features = bg_features
-        self._prepare_booking_iid_uid_part(bdf)
+
         self._prepare_obs_per_iid(bdf)
-        self._prepare_uid_booking_summaries(bdf)
+        self._prepare_booking_iid_uid_part(bdf)
+
+        # obj-feature data based on bookings
+        self._prepare_item_feature_data(bdf)
+        self._prepare_user_feature_data(bdf)
 
     def _prepare_obs_per_iid(self, bdf):
         self._obs_per_iid = bdf.groupby('propcode').bookcode.nunique()
@@ -57,11 +94,25 @@ class BookingDataProvider(object):
         cols = ["bookcode", "propcode", "code"]
         self._b_iid_uid = bdf[cols]
 
-    def _prepare_uid_booking_summaries(self, bdf):
-        cols = ["bookcode", "propcode", "year"]
-        data = bdf.drop(cols, axis=1)
-        data = data.groupby("code").mean()
-        self._uid_booking_summaries = data
+    def _prepare_item_feature_data(self, bdf):
+        feature_to_col = {
+            fid: col_id for col_id, fid in
+            enumerate(bdf.columns.drop(["code", "bookcode", "year", "propcode"]))
+        }
+        data = bdf.drop(["bookcode", "code", "year"], axis=1).groupby("propcode").mean()
+        iid_to_row = {iid: row_id for row_id, iid in enumerate(data.index)}
+        m = csr_matrix(data.values, shape=(len(iid_to_row), len(feature_to_col)))
+        self._ufd = ObjFeatureSparseData(m, iid_to_row, feature_to_col)
+
+    def _prepare_user_feature_data(self, bdf):
+        feature_to_col = {
+            fid: col_id for col_id, fid in
+            enumerate(bdf.columns.drop(["code", "bookcode", "year", "propcode"]))
+        }
+        data = bdf.drop(["bookcode", "propcode", "year"], axis=1).groupby("code").mean()
+        uid_to_row = {uid: row_id for row_id, uid in enumerate(data.index)}
+        m = csr_matrix(data.values, shape=(len(uid_to_row), len(feature_to_col)))
+        self._ufd = ObjFeatureSparseData(m, uid_to_row, feature_to_col)
 
     def get_iids_for_uid(self, uid):
         return set(self._b_iid_uid[self._b_iid_uid.code == uid].propcode)
@@ -74,10 +125,13 @@ class BookingDataProvider(object):
 
     def get_uid_booking_summary(self, uid):
         summary = {}
-        if uid in self._uid_booking_summaries.index:
-            for feature, score in self._uid_booking_summaries.loc[uid].items():
-                if score > FEATURE_THRESHOLD:
-                    summary[feature] = score
+        if uid in self._ufd.obj_to_row:
+            row_id = self._ufd.obj_to_row[uid]
+            row = self._ufd.m[row_id]
+            for arg_id in np.where(row.data > FEATURE_THRESHOLD)[0]:
+                col_id, score = row.indices[arg_id], row.data[arg_id]
+                feature = self._ufd.col_to_feature[col_id]
+                summary[feature] = score
         return summary
 
     @staticmethod
