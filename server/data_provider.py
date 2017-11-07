@@ -204,3 +204,49 @@ class ItemDataProvider(object):
         pdf = pd.read_csv(config['PROPERTY_FILE_PATH'])[cols]
         bid_to_bgs, bg_iids = get_bg_data(config['BG_FILE_PATH'])
         return ItemDataProvider(pdf, bg_iids)
+
+
+class ItemFeatureDataProvider(object):
+    def __init__(self, bdf, pfdf):
+        # obj-feature data based on items
+        self._prepare_item_feature_data(pfdf)
+        self._prepare_user_feature_data(bdf, pfdf)
+
+    def _prepare_item_feature_data(self, pfdf):
+        feature_to_col = {
+            fid: col_id for col_id, fid in
+            enumerate(pfdf.columns.drop(["year", "propcode"]))
+        }
+        data = pfdf.drop(["year"], axis=1).groupby("propcode").mean()
+        iid_to_row = {iid: row_id for row_id, iid in enumerate(data.index)}
+        m = csr_matrix(data.values, shape=(len(iid_to_row), len(feature_to_col)))
+        self._ifd = ObjFeatureSparseData(m, iid_to_row, feature_to_col)
+
+    def _prepare_user_feature_data(self, bdf, pfdf):
+        _df = pd.merge(bdf, pfdf, on=["propcode", "year"])
+        feature_to_col = {
+            fid: col_id for col_id, fid in
+            enumerate(_df.columns.drop(["propcode", "year", "code"]))
+        }
+        data = _df.drop(["propcode", "year"], axis=1).groupby("code").mean()
+        uid_to_row = {uid: row_id for row_id, uid in enumerate(data.index)}
+        m = csr_matrix(data.values, shape=(len(uid_to_row), len(feature_to_col)))
+        self._ufd = ObjFeatureSparseData(m, uid_to_row, feature_to_col)
+
+    def has_uid_features(self, uid):
+        return uid in self._ufd.obj_to_row
+
+    def get_uids_feature_matrix(self, uids):
+        row_ids = [self._ufd.obj_to_row[uid] for uid in uids]
+        return self._ufd.m[row_ids]
+
+    def get_iids_feature_matrix(self, iids):
+        row_ids = [self._ifd.obj_to_row[iid] for iid in iids]
+        return self._ifd.m[row_ids]
+
+    @staticmethod
+    def load(config):
+        cols = ["code", "propcode", "year"]
+        bdf = pd.read_csv(config['BOOKING_FEATURE_FILE_PATH'])[cols]
+        pfdf = pd.read_csv(config['PROPERTY_FEATURE_FILE_PATH'])
+        return ItemFeatureDataProvider(bdf, pfdf)
