@@ -132,10 +132,6 @@ def main():
     logging.info("Features that don't present in every year: %s", bad_feature_cols)
     df = df.drop(bad_feature_cols, axis=1)
 
-    logging.info("Merging rows by averaging feature values")
-    df = df.drop(['year'], axis=1)
-    df = df.groupby('propcode').mean().reset_index()
-
     logging.info(u"Dumping prepared booking-feature matrix: %s", df.shape)
     df.to_csv(args.output_csv, index=False)
 
