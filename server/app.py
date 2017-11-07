@@ -63,7 +63,7 @@ class APIApp(Flask):
         logger.info(u"Item data provider has been initialized")
 
         self.item_feature_dp = ItemFeatureDataProvider.load(self.config)
-        logger.info(u"Item data provider has been initialized")
+        logger.info(u"Item feature data provider has been initialized")
 
     def _load_recommenders(self):
         self.item_pop_recommender = PopItemRecommender.load(
