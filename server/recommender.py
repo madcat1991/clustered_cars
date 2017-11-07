@@ -71,9 +71,10 @@ class PopItemRecommender(object):
 
 
 class CBItemRecommender(object):
-    def __init__(self, booking_dp, item_dp):
+    def __init__(self, booking_dp, item_dp, item_feature_dp):
         self.booking_dp = booking_dp
         self.item_dp = item_dp
+        self.item_feature_dp = item_feature_dp
 
     def get_recs(self, uid, top_items=None):
         active_iids = self.item_dp.get_active_iids()
@@ -81,9 +82,9 @@ class CBItemRecommender(object):
         if booked_iids:
             active_iids = active_iids.difference(booked_iids)
 
-        active_iids = np.array(active_iids)
-        uf_m = normalize(self.booking_dp.get_uids_feature_matrix([uid]))
-        if_m = normalize(self.booking_dp.get_iids_feature_matrix(active_iids))
+        active_iids = np.array(list(active_iids))
+        uf_m = normalize(self.item_feature_dp.get_uids_feature_matrix([uid]))
+        if_m = normalize(self.item_feature_dp.get_iids_feature_matrix(active_iids))
         scores = uf_m.dot(if_m.T).todense().A1
 
         arg_ids = np.argsort(scores)[-top_items:][::-1] if top_items else np.argsort(scores)[::-1]
@@ -91,5 +92,5 @@ class CBItemRecommender(object):
         return recs
 
     @staticmethod
-    def load(booking_dp, item_dp):
-        return CBItemRecommender(booking_dp, item_dp)
+    def load(booking_dp, item_dp, item_feature_dp):
+        return CBItemRecommender(booking_dp, item_dp, item_feature_dp)
