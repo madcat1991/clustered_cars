@@ -1,7 +1,7 @@
 from flask import current_app as app
 
 
-def get_recs(uid, top_clusters, top_items):
+def get_cluster_based_recs(uid, top_clusters, top_items):
     res = {}
     ug_id = app.user_dp.get_cluster_id(uid)
 
@@ -15,6 +15,20 @@ def get_recs(uid, top_clusters, top_items):
         res = {
             "user": app.user_dp.get_uid_features(uid),
             "user_cluster": {ug_id: app.user_dp.get_cluster_features(ug_id)},
+            "recs": recs,
+            "prev_bookings_summary": app.booking_dp.get_uid_booking_summary(uid),
+        }
+    return {"result": res}
+
+
+def get_content_based_recs(uid, top_items):
+    res = {}
+    if app.booking_db.has_uid_bookings(uid):
+        iid_recs = app.item_cb_recommender.get_recs(uid, top_items)
+        recs = app.item_dp.prepare_iid_recs(iid_recs)
+
+        res = {
+            "user": app.user_dp.get_uid_features(uid),
             "recs": recs,
             "prev_bookings_summary": app.booking_dp.get_uid_booking_summary(uid),
         }

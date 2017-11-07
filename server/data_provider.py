@@ -102,7 +102,7 @@ class BookingDataProvider(object):
         data = bdf.drop(["bookcode", "code", "year"], axis=1).groupby("propcode").mean()
         iid_to_row = {iid: row_id for row_id, iid in enumerate(data.index)}
         m = csr_matrix(data.values, shape=(len(iid_to_row), len(feature_to_col)))
-        self._ufd = ObjFeatureSparseData(m, iid_to_row, feature_to_col)
+        self._ifd = ObjFeatureSparseData(m, iid_to_row, feature_to_col)
 
     def _prepare_user_feature_data(self, bdf):
         feature_to_col = {
@@ -113,6 +113,9 @@ class BookingDataProvider(object):
         uid_to_row = {uid: row_id for row_id, uid in enumerate(data.index)}
         m = csr_matrix(data.values, shape=(len(uid_to_row), len(feature_to_col)))
         self._ufd = ObjFeatureSparseData(m, uid_to_row, feature_to_col)
+
+    def has_uid_bookings(self, uid):
+        return uid in self._ufd.obj_to_row
 
     def get_iids_for_uid(self, uid):
         return set(self._b_iid_uid[self._b_iid_uid.code == uid].propcode)
@@ -133,6 +136,14 @@ class BookingDataProvider(object):
                 feature = self._ufd.col_to_feature[col_id]
                 summary[feature] = score
         return summary
+
+    def get_uids_feature_matrix(self, uids):
+        row_ids = [self._ufd.obj_to_row[uid] for uid in uids]
+        return self._ufd.m[row_ids]
+
+    def get_iids_feature_matrix(self, iids):
+        row_ids = [self._ifd.obj_to_row[iid] for iid in iids]
+        return self._ifd.m[row_ids]
 
     @staticmethod
     def load(config):
@@ -185,25 +196,36 @@ class ItemDataProvider(object):
     def get_active_iids(self):
         return self._active_iids
 
-    def prepare_bg_recs(self, bg_recs, iid_recs, top_clusters=None, top_items=None):
-        _bg_iid_m = self.bg_iid_m.multiply(iid_recs)
-
+    def prepare_iid_recs(self, iid_recs, top_items=None):
         recs = []
-        for b_arg_id in np.argsort(bg_recs.data)[::-1][:top_clusters]:
-            bg_id, bg_score = bg_recs.indices[b_arg_id], bg_recs.data[b_arg_id]
-            _iid_recs = _bg_iid_m[bg_id]
 
-            i_recs = []
-            for i_arg_id in np.argsort(_iid_recs.data)[::-1][:top_items]:
-                i_recs.append({
-                    "propcode": self.col_to_iid[_iid_recs.indices[i_arg_id]],
-                    "score": _iid_recs.data[i_arg_id]
-                })
+        if top_items is None:
+            arg_ids = np.argsort(iid_recs.data)[::-1]
+        else:
+            arg_ids = np.argsort(iid_recs.data)[-top_items:][::-1]
 
+        for arg_id in arg_ids:
+            recs.append({
+                "propcode": self.col_to_iid[iid_recs.indices[arg_id]],
+                "score": iid_recs.data[arg_id]
+            })
+        return recs
+
+    def prepare_bg_recs(self, bg_recs, iid_recs, top_clusters=None, top_items=None):
+        recs = []
+
+        if top_clusters is None:
+            arg_ids = np.argsort(bg_recs.data)[::-1]
+        else:
+            arg_ids = np.argsort(bg_recs.data)[-top_clusters:][::-1]
+
+        _bg_iid_m = self.bg_iid_m.multiply(iid_recs)
+        for arg_id in arg_ids:
+            bg_id, bg_score = bg_recs.indices[arg_id], bg_recs.data[arg_id]
             recs.append({
                 "bg_id": bg_id,
                 "score": bg_score,
-                "properties": i_recs
+                "properties": self.prepare_iid_recs(_bg_iid_m[bg_id], top_items)
             })
         return recs
 

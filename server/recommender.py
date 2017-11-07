@@ -3,7 +3,7 @@ import logging
 import numpy as np
 from scipy.io import mmread
 from scipy.sparse import csr_matrix
-from sklearn.preprocessing import binarize
+from sklearn.preprocessing import binarize, normalize
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +61,35 @@ class PopItemRecommender(object):
         # scores of iids
         scores = np.r_[obs_per_iid.values, [1e-6] * len(unobserved_iids)]  # constant to guarantee nnz
 
-        if top_items:
-            arg_ids = np.argsort(scores)[-top_items:][::-1]
-            iids = iids[arg_ids]
-            scores = scores[arg_ids]
-
-        recs = self.item_dp.get_score_per_iid_row(iids, scores)
+        arg_ids = np.argsort(scores)[-top_items:][::-1] if top_items else np.argsort(scores)[::-1]
+        recs = self.item_dp.get_score_per_iid_row(iids[arg_ids], scores[arg_ids])
         return recs
 
     @staticmethod
     def load(booking_dp, item_dp):
         return PopItemRecommender(booking_dp, item_dp)
+
+
+class CBItemRecommender(object):
+    def __init__(self, booking_dp, item_dp):
+        self.booking_dp = booking_dp
+        self.item_dp = item_dp
+
+    def get_recs(self, uid, top_items=None):
+        active_iids = self.item_dp.get_active_iids()
+        booked_iids = self.booking_dp.get_iids_for_uid(uid)
+        if booked_iids:
+            active_iids = active_iids.difference(booked_iids)
+
+        active_iids = np.array(active_iids)
+        uf_m = normalize(self.booking_dp.get_uids_feature_matrix([uid]))
+        if_m = normalize(self.booking_dp.get_iids_feature_matrix(active_iids))
+        scores = uf_m.dot(if_m.T).todense().A1
+
+        arg_ids = np.argsort(scores)[-top_items:][::-1] if top_items else np.argsort(scores)[::-1]
+        recs = self.item_dp.get_score_per_iid_row(active_iids[arg_ids], scores[arg_ids])
+        return recs
+
+    @staticmethod
+    def load(booking_dp, item_dp):
+        return CBItemRecommender(booking_dp, item_dp)
