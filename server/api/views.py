@@ -23,7 +23,7 @@ def get_cluster_based_recs(uid, top_clusters, top_items):
 
 def get_content_based_recs(uid, top_items):
     res = {}
-    if app.booking_db.has_uid_bookings(uid):
+    if app.item_feature_dp.has_uid_features(uid):
         iid_recs = app.item_cb_recommender.get_recs(uid, top_items)
         recs = app.item_dp.prepare_iid_recs(iid_recs)
 

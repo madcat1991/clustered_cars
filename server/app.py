@@ -5,7 +5,7 @@ import logging.config
 import numpy as np
 from flask import Flask, jsonify
 
-from server.data_provider import UserDataProvider, BookingDataProvider, ItemDataProvider
+from server.data_provider import UserDataProvider, BookingDataProvider, ItemDataProvider, ItemFeatureDataProvider
 from server.exceptions import BaseApiException
 from server.functions import get_abs_path, clean_json_dict_keys
 from server.recommender import ClusterRecommender, PopItemRecommender, CBItemRecommender
@@ -62,6 +62,9 @@ class APIApp(Flask):
         self.item_dp = ItemDataProvider.load(self.config)
         logger.info(u"Item data provider has been initialized")
 
+        self.item_feature_dp = ItemFeatureDataProvider.load(self.config)
+        logger.info(u"Item data provider has been initialized")
+
     def _load_recommenders(self):
         self.item_pop_recommender = PopItemRecommender.load(
             self.booking_dp, self.item_dp
@@ -69,7 +72,7 @@ class APIApp(Flask):
         logger.info(u"Item popularity based recommender has been initialized")
 
         self.item_cb_recommender = CBItemRecommender.load(
-            self.booking_dp, self.item_dp
+            self.booking_dp, self.item_dp, self.item_feature_dp
         )
         logger.info(u"Item content-based recommender has been initialized")
 
