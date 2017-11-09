@@ -5,7 +5,7 @@ from flask import Blueprint, request
 from server.api.views import get_cluster_based_recs, get_content_based_recs
 from server.exceptions import ArgErrorException
 
-api_bp = Blueprint('api_bp', __name__)
+api_bp = Blueprint('api_bp', __name__, url_prefix='/api')
 logger = logging.getLogger(__name__)
 
 
