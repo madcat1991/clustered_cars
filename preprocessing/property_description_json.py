@@ -79,14 +79,14 @@ possession_field_title = {
 
 
 true_false_fields = {
-    "shortbreakok": "shortbreakok",
-    "complex": "complex",
+    "shortbreakok": "allows short breaks",
+    "complex": "a complex",
     "detached": "detached",
-    "_52": "good_for_honeymooners",
-    "_64": "no_smoking",
-    "_71": "part_disabled",
-    "pets": "pets",
-    "_100": "wheel_chair"
+    "_52": "good for honeymooners",
+    "_64": "non-smoking",
+    "_71": "accessible to partially disabled people",
+    "pets": "pets-friendly",
+    "_100": "accessible to people using wheel chairs"
 }
 
 
@@ -121,7 +121,11 @@ def get_space_info(t):
 def get_possession_info(t):
     data = set()
     for field, title in possession_field_title.items():
-        singular, plural = title if isinstance(title, tuple) else title, title
+        if isinstance(title, tuple):
+            singular, plural = title
+        else:
+             singular = plural = title
+
         val = getattr(t, field, 0)
         if val == 1:
             data.add(singular)
@@ -132,8 +136,12 @@ def get_possession_info(t):
 
 def get_nearby_info(t):
     data = set()
-    for field, title in possession_field_title.items():
-        singular, plural = title if isinstance(title, tuple) else title, title
+    for field, title in things_nearby_field.items():
+        if isinstance(title, tuple):
+            singular, plural = title
+        else:
+             singular = plural = title
+
         val = getattr(t, field, 0)
         if val == 1:
             data.add(singular)
@@ -151,8 +159,12 @@ def get_features_info(t):
     return data
 
 
-def get_true_false_data(t):
-    return {title: bool(getattr(t, field, 0) > 0) for field, title in true_false_fields.items()}
+def get_peculiarities(t):
+    data = []
+    for field, title in true_false_fields.items():
+        if getattr(t, field, 0) > 0:
+            data.append(title)
+    return data
 
 
 def collect_property_data(pdf):
@@ -165,11 +177,11 @@ def collect_property_data(pdf):
             "stars": t.stars,
             "address": get_address_info(t),
             "space": get_space_info(t),
-            "posession": get_possession_info(t),
+            "possession": get_possession_info(t),
             "features": get_features_info(t),
             "nearby": get_nearby_info(t),
+            "peculiarities": get_peculiarities(t),
         }
-        data.update(get_true_false_data(t))
         property_data[propcode] = data
     logging.info("Data has been collected")
     return property_data
@@ -189,11 +201,11 @@ def main():
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
     parser.add_argument('-p', required=True, dest="property_csv",
-                        help=u'Path to a csv file with properties')
+                        help='Path to a csv file with properties')
     parser.add_argument('-f', required=True, dest="feature_csv",
-                        help=u'Path to a csv file with property features')
+                        help='Path to a csv file with property features')
     parser.add_argument('-o', default="property_descrs.json", dest="output_path",
-                        help=u'Path to an output file. Default: property_descrs.json')
+                        help='Path to an output file. Default: property_descrs.json')
     parser.add_argument("--log-level", default='INFO', dest="log_level",
                         choices=['DEBUG', 'INFO', 'WARNINGS', 'ERROR'], help=u"Logging level")
     args = parser.parse_args()
