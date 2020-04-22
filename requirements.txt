@@ -1,4 +1,4 @@
-Flask==0.12.2
+Flask==1.0
 ipdb==0.10.2
 jupyter==1.0.0
 matplotlib==2.1.0
