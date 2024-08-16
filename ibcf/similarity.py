@@ -10,19 +10,17 @@ def get_ib_topk_cosine_sim(ui_matrix, top=None):
     :param ui_matrix: user x item matrix
     :param top: number of similarities per object in the final matrix
     """
-    user_norm_m = normalize(ui_matrix, axis=1)
-    iu_norm_m = normalize(user_norm_m.T.tocsr(), axis=1)
+    iu_m = ui_matrix.T.tocsr()
+    iu_norm_m = normalize(iu_m, axis=1)
 
     sim_m = iu_norm_m.dot(iu_norm_m.T)
     sim_m = nullify_main_diagonal(sim_m)
 
     if top is not None:
         sim_m = get_topk(sim_m, top, axis=0)
-    # be aware of this normalization since it plays very special role during
-    # final recommendations calculation
-    return normalize(sim_m, axis=0)  # column-wise
+
+    return sim_m
 
 
 def get_similarity_matrix(ui_matrix, top=None):
-    sim_m = get_ib_topk_cosine_sim(ui_matrix, top)
-    return sim_m.tocsr()
+    return get_ib_topk_cosine_sim(ui_matrix, top)

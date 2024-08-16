@@ -58,7 +58,8 @@ def get_top_from_row(row, top=None):
 def nullify_main_diagonal(m):
     positions = range(m.shape[0])
     eye = csr_matrix((np.ones(len(positions)), (positions, positions)), m.shape)
-    return m - m.multiply(eye)
+    m = m - m.multiply(eye)
+    return m
 
 
 def get_sparse_matrix_info(m):
